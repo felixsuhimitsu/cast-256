@@ -1,0 +1,14 @@
+# Build artifacts
+build/
+*.vvp
+*.vcd
+*.fs
+*.json
+*.log
+*.pnr
+
+# Editor & OS temporary files
+.DS_Store
+*.swp
+*~
+abc.history

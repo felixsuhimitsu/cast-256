@@ -1,0 +1,23 @@
+// Tang Nano 9K Physical Constraints File
+// Target Device: GW1NR-LV9QN88PC6/I5
+
+IO_LOC "clk_27m" 52;
+IO_PORT "clk_27m" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+
+IO_LOC "rst_n" 3;
+IO_PORT "rst_n" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+
+IO_LOC "uart_tx" 17;
+IO_PORT "uart_tx" IO_TYPE=LVCMOS33 DRIVE=8;
+
+IO_LOC "uart_rx" 18;
+IO_PORT "uart_rx" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+
+IO_LOC "led_tx_active" 10;
+IO_PORT "led_tx_active" IO_TYPE=LVCMOS18 DRIVE=8;
+
+IO_LOC "led_rx_pass" 11;
+IO_PORT "led_rx_pass" IO_TYPE=LVCMOS18 DRIVE=8;
+
+IO_LOC "led_mac_err" 13;
+IO_PORT "led_mac_err" IO_TYPE=LVCMOS18 DRIVE=8;
