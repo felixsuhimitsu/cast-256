@@ -22,6 +22,7 @@ module sha256_padder (
 );
 
     // Internal 512-byte Dual-Port Framing Memory
+    (* syn_ramstyle = "block_ram", no_rw_check *)
     reg [7:0] framing_ram [0:511];
     reg [7:0] mem_rdata;
     reg [8:0] mem_raddr;
@@ -36,7 +37,7 @@ module sha256_padder (
     // Core Instantiation
     reg          core_init;
     reg          core_block_valid;
-    reg  [511:0] core_block_in;
+    wire [511:0] core_block_in;
     wire         core_ready;
     wire         core_digest_valid;
 
@@ -70,11 +71,8 @@ module sha256_padder (
 
     assign busy = (state != PAD_IDLE);
 
-    // 64-bit message length in bits
-    wire [63:0] bit_len = {45'd0, total_len, 3'b000};
-
     // Calculate byte value for current block position (curr_block, byte_idx)
-    wire [15:0] global_idx = {8'd0, curr_block, 6'd0} + {10'd0, byte_idx};
+    wire [15:0] global_idx = {7'd0, curr_block[2:0], byte_idx};
     wire is_last_block = (curr_block == total_blocks - 4'd1);
 
     reg [7:0] constructed_byte;
@@ -84,28 +82,27 @@ module sha256_padder (
         end else if (global_idx == total_len) begin
             constructed_byte = 8'h80;
         end else if (is_last_block && (byte_idx >= 6'd56)) begin
-            case (byte_idx)
-                6'd56: constructed_byte = bit_len[63:56];
-                6'd57: constructed_byte = bit_len[55:48];
-                6'd58: constructed_byte = bit_len[47:40];
-                6'd59: constructed_byte = bit_len[39:32];
-                6'd60: constructed_byte = bit_len[31:24];
-                6'd61: constructed_byte = bit_len[23:16];
-                6'd62: constructed_byte = bit_len[15:8];
-                6'd63: constructed_byte = bit_len[7:0];
-                default: constructed_byte = 8'h00;
-            endcase
+            if (byte_idx == 6'd61) begin
+                constructed_byte = {5'd0, total_len[15:13]};
+            end else if (byte_idx == 6'd62) begin
+                constructed_byte = total_len[12:5];
+            end else if (byte_idx == 6'd63) begin
+                constructed_byte = {total_len[4:0], 3'b000};
+            end else begin
+                constructed_byte = 8'h00;
+            end
         end else begin
             constructed_byte = 8'h00;
         end
     end
+
+    assign core_block_in = block_builder;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             state            <= PAD_IDLE;
             core_init        <= 1'b0;
             core_block_valid <= 1'b0;
-            core_block_in    <= 512'd0;
             total_len        <= 16'd0;
             total_blocks     <= 4'd0;
             curr_block       <= 4'd0;
@@ -143,22 +140,21 @@ module sha256_padder (
                 end
 
                 PAD_LATCH_BYTE: begin
-                    // Latch constructed byte into block_builder
-                    block_builder[511 - 8*byte_idx -: 8] <= constructed_byte;
+                    // Latch constructed byte into 512-bit shift register
+                    block_builder <= {block_builder[503:0], constructed_byte};
 
                     if (byte_idx == 6'd63) begin
                         // Full 512-bit block assembled
                         state <= PAD_DISPATCH;
                     end else begin
                         byte_idx  <= byte_idx + 6'd1;
-                        mem_raddr <= {curr_block[2:0], 6'd0} + {3'd0, byte_idx + 6'd1};
+                        mem_raddr <= {curr_block[2:0], byte_idx + 6'd1};
                         state     <= PAD_FETCH_BYTE;
                     end
                 end
 
                 PAD_DISPATCH: begin
                     if (core_ready) begin
-                        core_block_in    <= block_builder;
                         core_block_valid <= 1'b1;
                         state            <= PAD_WAIT_CORE;
                     end

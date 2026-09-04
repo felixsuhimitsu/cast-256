@@ -13,17 +13,18 @@ module aes256_ctr (
     input  wire [127:0] iv,           // 128-bit Initial Counter / Nonce
     input  wire [127:0] data_in,      // 128-bit Plaintext or Ciphertext block
     output reg  [127:0] data_out,     // 128-bit Transformed block
-    output reg  [127:0] counter_out,  // Current running counter value
+    output wire [127:0] counter_out,  // Current running counter value
     output wire         ready,        // Ready to accept start
     output reg          valid         // Data output valid strobe (1 cycle)
 );
 
     reg [127:0] counter_reg;
-    reg [127:0] data_in_latched;
     reg         core_start;
     wire        core_ready;
     wire        core_valid;
     wire [127:0] keystream;
+
+    assign counter_out = counter_reg;
 
     localparam CTR_IDLE = 1'b0;
     localparam CTR_BUSY = 1'b1;
@@ -45,9 +46,7 @@ module aes256_ctr (
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             counter_reg     <= 128'd0;
-            data_in_latched <= 128'd0;
             data_out        <= 128'd0;
-            counter_out     <= 128'd0;
             core_start      <= 1'b0;
             valid           <= 1'b0;
             state           <= CTR_IDLE;
@@ -57,23 +56,20 @@ module aes256_ctr (
 
             if (load_iv) begin
                 counter_reg <= iv;
-                counter_out <= iv;
             end
 
             case (state)
                 CTR_IDLE: begin
                     if (start && core_ready) begin
-                        data_in_latched <= data_in;
-                        core_start      <= 1'b1;
-                        state           <= CTR_BUSY;
+                        core_start <= 1'b1;
+                        state      <= CTR_BUSY;
                     end
                 end
 
                 CTR_BUSY: begin
                     if (core_valid) begin
-                        data_out    <= data_in_latched ^ keystream;
+                        data_out    <= data_in ^ keystream;
                         counter_reg <= counter_reg + 128'd1; // NIST SP 800-38A standard increment
-                        counter_out <= counter_reg + 128'd1;
                         valid       <= 1'b1;
                         state       <= CTR_IDLE;
                     end

@@ -8,7 +8,7 @@ module aes256_core (
     input  wire         start,
     input  wire [255:0] key,
     input  wire [127:0] block_in,
-    output reg  [127:0] block_out,
+    output wire [127:0] block_out,
     output reg          ready,
     output reg          valid
 );
@@ -118,13 +118,14 @@ module aes256_core (
     // 4. AddRoundKey
     wire [127:0] next_round_state = round_transform ^ round_key;
 
+    assign block_out = state_reg;
+
     // Control FSM
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             state     <= STATE_IDLE;
             round_cnt <= 4'd0;
             state_reg <= 128'd0;
-            block_out <= 128'd0;
             ready     <= 1'b1;
             valid     <= 1'b0;
         end else begin
@@ -142,14 +143,13 @@ module aes256_core (
                 end
 
                 STATE_ROUNDS: begin
+                    state_reg <= next_round_state;
                     if (round_cnt == 4'd14) begin
-                        block_out <= next_round_state;
                         valid     <= 1'b1;
                         ready     <= 1'b1;
                         state     <= STATE_IDLE;
                         round_cnt <= 4'd0;
                     end else begin
-                        state_reg <= next_round_state;
                         round_cnt <= round_cnt + 4'd1;
                     end
                 end
