@@ -119,9 +119,10 @@ module uart_rx (
                         end else begin
                             rx_frame_err <= 1'b1;
                         end
-                    end
-
-                    if (clk_cnt == CLKS_PER_BIT - 1) begin
+                        // Release to IDLE immediately after the stop-bit sample.
+                        // Waiting the full bit period leaves only ~3.75 cycles of
+                        // margin before the next start bit (234 vs 234.375), so a
+                        // back-to-back stream eventually misses a start edge.
                         clk_cnt <= 8'd0;
                         state   <= STATE_IDLE;
                     end else begin
