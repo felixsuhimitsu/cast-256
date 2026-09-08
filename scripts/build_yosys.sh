@@ -21,6 +21,8 @@ nextpnr-himbaechel \
     --vopt family=GW1N-9C \
     --vopt cst=constraints/tangnano9k.cst \
     --sdc constraints/timing.sdc \
+    --placer sa \
+    --placer-sa-effort 3 \
     | tee "${BUILD_DIR}/nextpnr.log"
 
 echo "[3/3] Packing bitstream with Project Apicula..."

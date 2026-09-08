@@ -38,6 +38,7 @@ except ImportError:
 # ── Default Transceiver Parameters (matches SRS_URD.md & RTL) ──
 DEFAULT_ROOT_KEY = bytes.fromhex("603deb1015ca71be2b73aef0857d77811f352c073b6108d72d9810a30914dff4")
 DEFAULT_BASE_IV  = bytes.fromhex("f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff")
+KMAC             = bytes.fromhex("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
 PREAMBLE         = bytes([0xAA, 0x55])
 POSTAMBLE        = bytes([0x0D, 0x0A])
 
@@ -54,8 +55,8 @@ NIST_KAT_PLAINTEXT = bytes.fromhex(
 #  Frame Builder / Parser
 # ═══════════════════════════════════════════════════════════════
 
-def build_frame(plaintext: bytes, key: bytes = DEFAULT_ROOT_KEY, iv: bytes = DEFAULT_BASE_IV) -> Tuple[bytes, bytes, bytes]:
-    """Encrypts plaintext with AES-256 CTR, computes SHA-256 MAC, and frames packet."""
+def build_frame(plaintext: bytes, key: bytes = DEFAULT_ROOT_KEY, iv: bytes = DEFAULT_BASE_IV, kmac: bytes = KMAC) -> Tuple[bytes, bytes, bytes]:
+    """Encrypts plaintext with AES-256 CTR, computes Keyed-Prefix SHA-256 MAC, and frames packet."""
     pad_len = (16 - (len(plaintext) % 16)) % 16
     padded_pt = plaintext + (b"\x00" * pad_len if pad_len != 0 else b"")
     if len(padded_pt) == 0:
@@ -67,15 +68,15 @@ def build_frame(plaintext: bytes, key: bytes = DEFAULT_ROOT_KEY, iv: bytes = DEF
 
     len_bytes = len(ciphertext).to_bytes(2, byteorder="big")
 
-    auth_data = len_bytes + iv + ciphertext
+    auth_data = kmac + len_bytes + iv + ciphertext
     mac = hashlib.sha256(auth_data).digest()
 
     frame = PREAMBLE + len_bytes + iv + ciphertext + mac + POSTAMBLE
     return frame, ciphertext, mac
 
 
-def parse_and_verify_frame(raw: bytes, key: bytes = DEFAULT_ROOT_KEY) -> Tuple[bool, Optional[bytes], str]:
-    """Validates frame structure, checks SHA-256 MAC, and decrypts payload."""
+def parse_and_verify_frame(raw: bytes, key: bytes = DEFAULT_ROOT_KEY, kmac: bytes = KMAC) -> Tuple[bool, Optional[bytes], str]:
+    """Validates frame structure, checks Keyed-Prefix SHA-256 MAC, and decrypts payload."""
     if len(raw) < 70:
         return False, None, f"Frame too short ({len(raw)} bytes < min 70 bytes)"
 
@@ -94,7 +95,7 @@ def parse_and_verify_frame(raw: bytes, key: bytes = DEFAULT_ROOT_KEY) -> Tuple[b
     ciphertext = raw[20:20 + ct_len]
     received_mac = raw[20 + ct_len: 20 + ct_len + 32]
 
-    auth_data = raw[2:20 + ct_len]
+    auth_data = kmac + raw[2:20 + ct_len]
     expected_mac = hashlib.sha256(auth_data).digest()
     if received_mac != expected_mac:
         return False, None, f"MAC verification failed! Recv: {received_mac.hex()} != Calc: {expected_mac.hex()}"
@@ -162,23 +163,55 @@ def run_echo_test(ser: serial.Serial, payload: bytes, verbose: bool = True) -> b
 # ═══════════════════════════════════════════════════════════════
 
 def run_tamper_test(ser: serial.Serial, payload: bytes) -> bool:
-    """Injects 1-bit corruption in MAC; expects FPGA to drop frame and emit 0 bytes."""
+    """Tests tamper resistance against:
+    1. Active MITM forgery: adversary alters ciphertext and recomputes unkeyed SHA-256 tag.
+    2. Bit corruption: 1-bit flip in MAC tag.
+    Verifies that FPGA quarantines and drops forged/tampered frames with 0 bytes emitted."""
     print(f"\n{'='*72}")
-    print(f"  [TEST: TAMPER FAULT INJECTION]")
+    print(f"  [TEST: KEYED-MAC TAMPER & FORGERY INJECTION]")
     print(f"{'='*72}")
 
-    frame, _, _ = build_frame(payload)
-
-    # Corrupt 1 bit in the SHA-256 MAC tag (first byte of MAC)
-    mac_offset = 2 + 2 + 16 + len(frame) - 2 - 32 - 2 + 2  # Start of MAC in frame
-    # Simpler: MAC starts at 2+2+16+ct_len, ct_len = len(payload) rounded up to 16
+    frame, ciphertext, mac = build_frame(payload)
     ct_len = int.from_bytes(frame[2:4], byteorder="big")
+    len_bytes = frame[2:4]
+    iv = frame[4:20]
+
+    # ─────────────────────────────────────────────────────────────
+    # Sub-test 1: Active MITM Adversary Modifying Ciphertext
+    # and attempting to forge tag using unkeyed SHA-256
+    # ─────────────────────────────────────────────────────────────
+    print(f"  [Sub-test 1] MITM Alteration: Flip 1 bit in ciphertext & forge unkeyed tag...")
+    altered_ct = bytearray(ciphertext)
+    altered_ct[0] ^= 0x55
+    altered_ct = bytes(altered_ct)
+
+    # Adversary tries to pass verification by recomputing unkeyed hash
+    forged_unkeyed_mac = hashlib.sha256(len_bytes + iv + altered_ct).digest()
+    forged_frame = PREAMBLE + len_bytes + iv + altered_ct + forged_unkeyed_mac + POSTAMBLE
+
+    ser.reset_input_buffer()
+    ser.write(forged_frame)
+    ser.flush()
+
+    old_timeout = ser.timeout
+    ser.timeout = 0.5
+    resp = ser.read(64)
+    ser.timeout = old_timeout
+
+    if len(resp) > 0:
+        print(f"  [FAIL] Unkeyed forgery attack leaked {len(resp)} bytes: {resp.hex()}")
+        return False
+
+    print(f"  [PASS] Unkeyed forgery dropped! FPGA enforced Keyed-MAC (KMAC required).")
+
+    # ─────────────────────────────────────────────────────────────
+    # Sub-test 2: 1-Bit Corruption in Keyed MAC Tag
+    # ─────────────────────────────────────────────────────────────
+    print(f"  [Sub-test 2] Bit-flip corruption in MAC tag...")
     mac_start = 2 + 2 + 16 + ct_len
     tampered_frame = bytearray(frame)
     tampered_frame[mac_start] ^= 0x01
     tampered_frame = bytes(tampered_frame)
-
-    print(f"  TX Corrupted Frame (1-bit flipped at MAC byte 0)")
 
     ser.reset_input_buffer()
     ser.write(tampered_frame)
@@ -193,7 +226,7 @@ def run_tamper_test(ser: serial.Serial, payload: bytes) -> bool:
         print(f"  [FAIL] Tampered frame leaked {len(resp)} bytes: {resp.hex()}")
         return False
 
-    print(f"  [PASS] Frame quarantined and dropped. 0 bytes emitted on TX.")
+    print(f"  [PASS] Corrupted MAC frame quarantined and dropped. 0 bytes emitted.")
     print(f"         LED D3 (Pin 13, MAC Tamper Alert) should pulse Blue for 150 ms.")
     return True
 

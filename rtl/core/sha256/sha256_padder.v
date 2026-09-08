@@ -63,6 +63,49 @@ module sha256_padder (
 
     reg [2:0] state;
 
+    // Keyed-Prefix MAC: 256-bit authentication key (KMAC) prepended as first 32 bytes
+    localparam [255:0] KMAC = 256'hba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad;
+
+    function [7:0] get_kmac_byte;
+        input [4:0] idx;
+        begin
+            case (idx)
+                5'd0:  get_kmac_byte = 8'hba;
+                5'd1:  get_kmac_byte = 8'h78;
+                5'd2:  get_kmac_byte = 8'h16;
+                5'd3:  get_kmac_byte = 8'hbf;
+                5'd4:  get_kmac_byte = 8'h8f;
+                5'd5:  get_kmac_byte = 8'h01;
+                5'd6:  get_kmac_byte = 8'hcf;
+                5'd7:  get_kmac_byte = 8'hea;
+                5'd8:  get_kmac_byte = 8'h41;
+                5'd9:  get_kmac_byte = 8'h41;
+                5'd10: get_kmac_byte = 8'h40;
+                5'd11: get_kmac_byte = 8'hde;
+                5'd12: get_kmac_byte = 8'h5d;
+                5'd13: get_kmac_byte = 8'hae;
+                5'd14: get_kmac_byte = 8'h22;
+                5'd15: get_kmac_byte = 8'h23;
+                5'd16: get_kmac_byte = 8'hb0;
+                5'd17: get_kmac_byte = 8'h03;
+                5'd18: get_kmac_byte = 8'h61;
+                5'd19: get_kmac_byte = 8'ha3;
+                5'd20: get_kmac_byte = 8'h96;
+                5'd21: get_kmac_byte = 8'h17;
+                5'd22: get_kmac_byte = 8'h7a;
+                5'd23: get_kmac_byte = 8'h9c;
+                5'd24: get_kmac_byte = 8'hb4;
+                5'd25: get_kmac_byte = 8'h10;
+                5'd26: get_kmac_byte = 8'hff;
+                5'd27: get_kmac_byte = 8'h61;
+                5'd28: get_kmac_byte = 8'hf2;
+                5'd29: get_kmac_byte = 8'h00;
+                5'd30: get_kmac_byte = 8'h15;
+                5'd31: get_kmac_byte = 8'had;
+            endcase
+        end
+    endfunction
+
     reg [15:0] total_len;
     reg [3:0]  total_blocks;
     reg [3:0]  curr_block;
@@ -72,12 +115,14 @@ module sha256_padder (
     assign busy = (state != PAD_IDLE);
 
     // Calculate byte value for current block position (curr_block, byte_idx)
-    wire [15:0] global_idx = {7'd0, curr_block[2:0], byte_idx};
+    wire [15:0] global_idx = {6'd0, curr_block[3:0], byte_idx};
     wire is_last_block = (curr_block == total_blocks - 4'd1);
 
     reg [7:0] constructed_byte;
     always @(*) begin
-        if (global_idx < total_len) begin
+        if (global_idx < 16'd32) begin
+            constructed_byte = get_kmac_byte(global_idx[4:0]);
+        end else if (global_idx < total_len) begin
             constructed_byte = mem_rdata;
         end else if (global_idx == total_len) begin
             constructed_byte = 8'h80;
@@ -118,9 +163,9 @@ module sha256_padder (
             case (state)
                 PAD_IDLE: begin
                     if (start_pad) begin
-                        total_len    <= msg_len;
-                        // total_blocks = (msg_len + 9 + 63) / 64 = (msg_len + 72) >> 6
-                        total_blocks <= (msg_len + 16'd72) >> 6;
+                        total_len    <= msg_len + 16'd32;
+                        // total_blocks = (msg_len + 32 + 9 + 63) / 64 = (msg_len + 104) >> 6
+                        total_blocks <= (msg_len + 16'd104) >> 6;
                         curr_block   <= 4'd0;
                         byte_idx     <= 6'd0;
                         core_init    <= 1'b1;
@@ -129,8 +174,8 @@ module sha256_padder (
                 end
 
                 PAD_INIT_CORE: begin
-                    // Set up memory address for first byte
-                    mem_raddr <= {curr_block[2:0], 6'd0};
+                    // Address registered in RAM. First byte is KMAC, so mem_raddr doesn't matter yet
+                    mem_raddr <= 9'd0;
                     state     <= PAD_FETCH_BYTE;
                 end
 
@@ -148,7 +193,12 @@ module sha256_padder (
                         state <= PAD_DISPATCH;
                     end else begin
                         byte_idx  <= byte_idx + 6'd1;
-                        mem_raddr <= {curr_block[2:0], byte_idx + 6'd1};
+                        // Set up RAM read address for next byte (RAM index = global_idx - 32)
+                        if ({curr_block[3:0], byte_idx + 6'd1} >= 10'd32) begin
+                            mem_raddr <= ({curr_block[3:0], byte_idx + 6'd1} - 10'd32);
+                        end else begin
+                            mem_raddr <= 9'd0;
+                        end
                         state     <= PAD_FETCH_BYTE;
                     end
                 end
@@ -170,7 +220,7 @@ module sha256_padder (
                             // Advance to next 512-bit block
                             curr_block <= curr_block + 4'd1;
                             byte_idx   <= 6'd0;
-                            mem_raddr  <= {curr_block[2:0] + 3'd1, 6'd0};
+                            mem_raddr  <= ({(curr_block + 4'd1), 6'd0} - 10'd32);
                             state      <= PAD_FETCH_BYTE;
                         end
                     end

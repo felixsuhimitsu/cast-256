@@ -5,25 +5,34 @@ BITSTREAM="build/synth/crypto_transceiver.fs"
 BOARD="tangnano9k"
 
 usage() {
-    echo "Usage: $0 [--sram | --flash]"
-    echo "  --sram   Program volatile SRAM (default, lost on power cycle)"
-    echo "  --flash  Program non-volatile flash (survives power cycle)"
-    exit 1
+  echo "Usage: $0 [--sram | --flash]"
+  echo "  --sram   Program volatile SRAM (default, lost on power cycle)"
+  echo "  --flash  Program non-volatile flash (survives power cycle)"
+  exit 1
 }
 
 MODE="sram"
 while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --sram)  MODE="sram";  shift ;;
-        --flash) MODE="flash"; shift ;;
-        -h|--help) usage ;;
-        *) echo "Unknown option: $1"; usage ;;
-    esac
+  case "$1" in
+  --sram)
+    MODE="sram"
+    shift
+    ;;
+  --flash)
+    MODE="flash"
+    shift
+    ;;
+  -h | --help) usage ;;
+  *)
+    echo "Unknown option: $1"
+    usage
+    ;;
+  esac
 done
 
 if [ ! -f "${BITSTREAM}" ]; then
-    echo "[ERROR] Bitstream ${BITSTREAM} not found. Run 'bash scripts/build_yosys.sh' first."
-    exit 1
+  echo "[ERROR] Bitstream ${BITSTREAM} not found. Run 'bash scripts/build_yosys.sh' first."
+  exit 1
 fi
 
 SIZE=$(stat -c%s "${BITSTREAM}")
@@ -34,11 +43,11 @@ echo "  Mode      : ${MODE}"
 echo "========================================================================"
 
 if [ "${MODE}" = "flash" ]; then
-    echo "[1/1] Writing to external flash (non-volatile)..."
-    openFPGALoader -b "${BOARD}" -f "${BITSTREAM}"
+  echo "[1/1] Writing to external flash (non-volatile)..."
+  openFPGALoader -b "${BOARD}" -f "${BITSTREAM}"
 else
-    echo "[1/1] Programming SRAM (volatile)..."
-    openFPGALoader -b "${BOARD}" "${BITSTREAM}"
+  echo "[1/1] Programming SRAM (volatile)..."
+  openFPGALoader -b "${BOARD}" "${BITSTREAM}"
 fi
 
 echo ""
