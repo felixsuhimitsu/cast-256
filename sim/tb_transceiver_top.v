@@ -101,15 +101,15 @@ module tb_transceiver_top;
         valid_pkt[24] = 8'h77; valid_pkt[25] = 8'h57; valid_pkt[26] = 8'h89; valid_pkt[27] = 8'ha5;
         valid_pkt[28] = 8'hb7; valid_pkt[29] = 8'ha7; valid_pkt[30] = 8'hf5; valid_pkt[31] = 8'h04;
         valid_pkt[32] = 8'hbb; valid_pkt[33] = 8'hf3; valid_pkt[34] = 8'hd2; valid_pkt[35] = 8'h28;
-        // SHA-256 MAC (32B): 9db0ec4233e153e815cc8a19f09304c83e34c1f9e6bb933deb44988b4d371fff
-        valid_pkt[36] = 8'h9d; valid_pkt[37] = 8'hb0; valid_pkt[38] = 8'hec; valid_pkt[39] = 8'h42;
-        valid_pkt[40] = 8'h33; valid_pkt[41] = 8'he1; valid_pkt[42] = 8'h53; valid_pkt[43] = 8'he8;
-        valid_pkt[44] = 8'h15; valid_pkt[45] = 8'hcc; valid_pkt[46] = 8'h8a; valid_pkt[47] = 8'h19;
-        valid_pkt[48] = 8'hf0; valid_pkt[49] = 8'h93; valid_pkt[50] = 8'h04; valid_pkt[51] = 8'hc8;
-        valid_pkt[52] = 8'h3e; valid_pkt[53] = 8'h34; valid_pkt[54] = 8'hc1; valid_pkt[55] = 8'hf9;
-        valid_pkt[56] = 8'he6; valid_pkt[57] = 8'hbb; valid_pkt[58] = 8'h93; valid_pkt[59] = 8'h3d;
-        valid_pkt[60] = 8'heb; valid_pkt[61] = 8'h44; valid_pkt[62] = 8'h98; valid_pkt[63] = 8'h8b;
-        valid_pkt[64] = 8'h4d; valid_pkt[65] = 8'h37; valid_pkt[66] = 8'h1f; valid_pkt[67] = 8'hff;
+        // Keyed-Prefix SHA-256 MAC (32B): 4afe44e2b4a346cbaf8ff9c42d0b96872de8b3cacb787da5206277ed3c213fe2
+        valid_pkt[36] = 8'h4a; valid_pkt[37] = 8'hfe; valid_pkt[38] = 8'h44; valid_pkt[39] = 8'he2;
+        valid_pkt[40] = 8'hb4; valid_pkt[41] = 8'ha3; valid_pkt[42] = 8'h46; valid_pkt[43] = 8'hcb;
+        valid_pkt[44] = 8'haf; valid_pkt[45] = 8'h8f; valid_pkt[46] = 8'hf9; valid_pkt[47] = 8'hc4;
+        valid_pkt[48] = 8'h2d; valid_pkt[49] = 8'h0b; valid_pkt[50] = 8'h96; valid_pkt[51] = 8'h87;
+        valid_pkt[52] = 8'h2d; valid_pkt[53] = 8'he8; valid_pkt[54] = 8'hb3; valid_pkt[55] = 8'hca;
+        valid_pkt[56] = 8'hcb; valid_pkt[57] = 8'h78; valid_pkt[58] = 8'h7d; valid_pkt[59] = 8'ha5;
+        valid_pkt[60] = 8'h20; valid_pkt[61] = 8'h62; valid_pkt[62] = 8'h77; valid_pkt[63] = 8'hed;
+        valid_pkt[64] = 8'h3c; valid_pkt[65] = 8'h21; valid_pkt[66] = 8'h3f; valid_pkt[67] = 8'he2;
         // Postamble (2B): 0x0D 0x0A
         valid_pkt[68] = 8'h0D; valid_pkt[69] = 8'h0A;
 
