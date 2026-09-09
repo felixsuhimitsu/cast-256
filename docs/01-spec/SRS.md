@@ -92,7 +92,7 @@ lại bởi FPGA trên bản rõ đã nhận.
 | REQ-P-02 | Tỉ lệ mất khung, 100 khung 128 byte liên tiếp | 0% | `scripts/hw_test.py --mode bench` |
 | REQ-P-03 | Độ trễ khứ hồi một khung 128 byte | ≤ 40 ms | như trên, thống kê min/avg/max/stddev |
 | REQ-P-04 | Thông lượng ứng dụng | ≥ 8000 byte/s | như trên |
-| REQ-P-05 | Số chu kỳ mã hóa một khối AES | ≤ 20 chu kỳ | Đếm trong mô phỏng |
+| REQ-P-05 | Số chu kỳ mã hóa một khối AES | ≤ 32 chu kỳ | Đếm trong mô phỏng (đo: 30). Nới từ 20 theo `ADR-0008` khi giảm còn 8 S-Box |
 | REQ-P-06 | Số chu kỳ băm một khối SHA-256 | ≤ 70 chu kỳ | Đếm trong mô phỏng |
 
 ## 7. Yêu cầu tài nguyên
@@ -101,15 +101,20 @@ lại bởi FPGA trên bản rõ đã nhận.
 |---|---|---|---|
 | REQ-R-01 | Tổng LUT4 | ≤ 90% của 8640 (7776) | Báo cáo nextpnr |
 | REQ-R-02 | Tổng DFF | ≤ 80% của 6480 (5184) | như trên |
-| REQ-R-03 | IP AES-256 đứng riêng | ≤ 2400 LUT4 | Tổng hợp riêng module |
+| REQ-R-03 | IP AES-256 đứng riêng | ≤ 2600 LUT4 | `make synth-aes` (đo: 2528) |
 | REQ-R-04 | IP SHA-256 đứng riêng | ≤ 2000 LUT4 | như trên |
 
 > Các ngưỡng REQ-R-03/04 là **ngân sách**, chốt trước khi viết code, để phát hiện sớm việc
 > vượt diện tích thay vì phát hiện lúc P&R thất bại ở cuối dự án.
 >
-> **Đã điều chỉnh ở WP-02** (2026-09-09): 2200→2400 và 1800→2000, sau khi đo thật S-Box
-> (81 LUT4) và hàm nén SHA (892 LUT4). Ngân sách tổng REQ-R-01/02 giữ nguyên. Xem
-> [`ADR-0007`](../09-decisions/ADR-0007-dieu-chinh-ngan-sach-dien-tich.md).
+> **Đã điều chỉnh hai lần, đều kèm số đo:**
+> - WP-02: 2200→2400 (AES) và 1800→2000 (SHA), sau khi đo S-Box (81) và hàm nén SHA (892).
+>   Xem [`ADR-0007`](../09-decisions/ADR-0007-dieu-chinh-ngan-sach-dien-tich.md).
+> - WP-04: 2400→2600 (AES), **sau khi đã tối ưu thật** (16→8 S-Box, 2961→2528 LUT4), không
+>   phải chỉ nới số. Xem [`ADR-0008`](../09-decisions/ADR-0008-ngan-sach-aes-sau-toi-uu.md).
+>
+> Ngân sách TỔNG (REQ-R-01/02) chưa hề thay đổi và chưa hề bị đụng tới — dự phóng hiện tại
+> ≈ 5880/8640 (68%).
 
 ## 8. Yêu cầu kiểm chứng
 

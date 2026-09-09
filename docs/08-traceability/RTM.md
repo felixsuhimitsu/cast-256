@@ -31,13 +31,13 @@ Bảng này là **gate cuối** của dự án (WP-10). Điều kiện đóng:
 
 | REQ | Mô tả ngắn | WP | Module | Test | Bằng chứng | TT |
 |---|---|---|---|---|---|---|
-| REQ-F-01 | AES-256 14 vòng FIPS 197 | WP-04 | MOD-AES-ROUND, MOD-AES-CIPHER | TC-101 | TBD | ⬜ |
-| REQ-F-02 | Chế độ CTR SP 800-38A | WP-04 | MOD-AES-IP | TC-104 | TBD | ⬜ |
-| REQ-F-03 | Counter 128-bit, wrap đúng | WP-04 | MOD-AES-IP | TC-105 | TBD | ⬜ |
+| REQ-F-01 | AES-256 14 vòng FIPS 197 | WP-04 | MOD-AES-ROUND, MOD-AES-CIPHER | TC-101 | `make sim-aes` — FIPS 197 C.3 khớp | ✅ |
+| REQ-F-02 | Chế độ CTR SP 800-38A | WP-04 | MOD-AES-IP | TC-104 | 4/4 khối F.5.5 khớp | ✅ |
+| REQ-F-03 | Counter 128-bit, wrap đúng | WP-04 | MOD-AES-IP | TC-105 | all-ones → 0, cả hai khối khớp | ✅ |
 | REQ-F-04 | S-Box composite field | WP-04 | MOD-AES-SBOX | TC-100 | `sim/unit/tb_sbox.v` 256/256 PASS | ✅ |
-| REQ-F-05 | Key schedule 15 khóa vòng | WP-04 | MOD-AES-KEYSCHED | TC-102 | TBD | ⬜ |
-| REQ-F-06 | Dùng chung cipher cho cả hai chiều | WP-04 | MOD-AES-CIPHER | TC-106 | TBD | ⬜ |
-| REQ-F-07 | Bỏ qua `start` khi busy | WP-04 | MOD-AES-IP | TC-107 | TBD | ⬜ |
+| REQ-F-05 | Key schedule 15 khóa vòng | WP-04 | MOD-AES-KEYSCHED | TC-101, TC-104 (gián tiếp) | 15/15 khóa vòng khớp FIPS 197 A.3 khi dump; **không có test trực tiếp** — xem §5 | 🚧 |
+| REQ-F-06 | Dùng chung cipher cho cả hai chiều | WP-04 | MOD-AES-CIPHER | TC-106 | mã→giải 48 byte về đúng bản rõ | ✅ |
+| REQ-F-07 | Bỏ qua `start` khi busy | WP-04 | MOD-AES-IP | TC-107 | start giữa chừng bị bỏ, kết quả không hỏng | ✅ |
 
 ### 3.2 IP SHA-256
 
@@ -67,8 +67,8 @@ Bảng này là **gate cuối** của dự án (WP-10). Điều kiện đóng:
 
 | REQ | Mô tả ngắn | WP | Module | Test | Bằng chứng | TT |
 |---|---|---|---|---|---|---|
-| REQ-I-01 | Hai IP cùng hợp đồng CSI | WP-05 | MOD-AES-IP, MOD-SHA-IP, MOD-FAB-MUX | TC-108, TC-207, TC-402, TC-403, TC-109 | TBD | ⬜ |
-| REQ-I-02 | Bắt tay valid/ready đúng H1–H5 | WP-05 | tất cả IP | TC-108, TC-207 | TBD | ⬜ |
+| REQ-I-01 | Hai IP cùng hợp đồng CSI | WP-04, WP-05 | MOD-AES-IP, MOD-SHA-IP, MOD-FAB-MUX | TC-108, TC-207, TC-402, TC-403 | `csi_checker` 0 vi phạm ở CẢ HAI IP | 🚧 (còn TC-402/403) |
+| REQ-I-02 | Bắt tay valid/ready đúng H1–H5 | WP-04 | tất cả IP | TC-108, TC-207 | H2/H5 kiểm mọi chu kỳ, 0 vi phạm | ✅ |
 | REQ-I-03 | UART 8-N-1 115200 | WP-01 | MOD-IO-URX, MOD-IO-UTX, MOD-IO-BAUD | TC-300 | `make sim-uart` 10/10 PASS | ✅ |
 | REQ-I-04 | Biểu quyết 3 điểm | WP-01 | MOD-IO-URX | TC-301, TC-302 | TC-301 8/8 sau khi sửa lỗi vote | ✅ |
 | REQ-I-05 | Nhả IDLE sau bit stop | WP-01 | MOD-IO-URX | **TC-600** | board thật: 4096/4096, 0 mất — `evidence/hw/20260909-2230-*.log` | ✅ |
@@ -81,7 +81,7 @@ Bảng này là **gate cuối** của dự án (WP-10). Điều kiện đóng:
 | REQ-P-02 | 0% mất khung / 100 khung | WP-08 | TC-602 | TBD | ⬜ |
 | REQ-P-03 | Độ trễ ≤ 40 ms | WP-08 | TC-602 | TBD | ⬜ |
 | REQ-P-04 | Thông lượng ≥ 8000 B/s | WP-08 | TC-602 | TBD | ⬜ |
-| REQ-P-05 | AES ≤ 20 chu kỳ/khối | WP-04 | TC-103 | TBD | ⬜ |
+| REQ-P-05 | AES ≤ 32 chu kỳ/khối (ADR-0008) | WP-04 | đếm trong mô phỏng | 30 chu kỳ | ✅ |
 | REQ-P-06 | SHA ≤ 70 chu kỳ/khối | WP-03 | TC-205 | 65 chu kỳ nén (1 init + 64 vòng) | ✅ |
 
 ### 3.6 Tài nguyên
@@ -90,7 +90,7 @@ Bảng này là **gate cuối** của dự án (WP-10). Điều kiện đóng:
 |---|---|---|---|---|---|
 | REQ-R-01 | LUT4 ≤ 7776 | WP-07 | nextpnr | TBD | ⬜ |
 | REQ-R-02 | DFF ≤ 5184 | WP-07 | nextpnr | TBD | ⬜ |
-| REQ-R-03 | AES ≤ 2400 LUT4 (ADR-0007) | WP-02, WP-04 | tổng hợp riêng | S-Box đo 81 ×16 = 1296 | 🚧 |
+| REQ-R-03 | AES ≤ 2600 LUT4 (ADR-0008) | WP-04 | `make synth-aes` | **2528 LUT4 (97% ngân sách)** | ✅ |
 | REQ-R-04 | SHA ≤ 2000 LUT4 (ADR-0007) | WP-03 | `make synth-sha` | **1661 LUT4 (83% ngân sách)** | ✅ |
 
 ### 3.7 Kiểm chứng & phi chức năng
@@ -114,6 +114,12 @@ phải hoặc gắn REQ, hoặc xóa.
 |---|---|---|
 | (tất cả module trong MODULE_MAP §2 đã có ≥1 REQ ở giai đoạn thiết kế) | — | ✅ khung |
 
+## 4b. Chỗ phủ chưa đầy đủ — ghi rõ thay vì làm ngơ
+
+| REQ | Thiếu gì | Vì sao chấp nhận tạm |
+|---|---|---|
+| REQ-F-05 | Không có test **trực tiếp** đối chiếu W[0..59] với FIPS 197 A.3 | `aes256_keysched` không có cổng ra khóa vòng ở mức IP, nên testbench cấp IP không quan sát được. 15/15 khóa vòng ĐÃ được đối chiếu thủ công bằng testbench gỡ lỗi ở WP-04 và khớp hoàn toàn; ngoài ra nếu key schedule sai thì TC-101/TC-104 không thể PASS. Muốn phủ trực tiếp thì phải thêm cổng quan sát — vi phạm §7 hợp đồng CSI (cấm cổng ngoài danh sách). |
+
 ## 5. Ràng buộc đã chấp nhận không thực hiện
 
 | Mục | ADR | Lý do |
@@ -128,11 +134,11 @@ phải hoặc gắn REQ, hoặc xóa.
 
 | Chỉ số | Định nghĩa | Mục tiêu | Hiện tại |
 |---|---|---|---|
-| Traceability coverage | % REQ có đủ module + test + bằng chứng | 100% | 11/39 = 28% |
+| Traceability coverage | % REQ có đủ module + test + bằng chứng | 100% | 19/39 = 49% |
 | Orphan rate (REQ) | % REQ không có code/test | 0% | 0% |
 | Orphan rate (module) | % module không có REQ | 0% | 0% |
 | Freshness | % tài liệu khớp commit hiện tại | 100% | 100% |
-| Decision coverage | % thay đổi kiến trúc có ADR | 100% | 100% (7/7) |
+| Decision coverage | % thay đổi kiến trúc có ADR | 100% | 100% (8/8) |
 | Review evidence | % artifact có mục trong human correction log | 100% | **0%** ⚠️ |
 
 > Ô cuối đang là 0% một cách trung thực: toàn bộ artifact hiện tại là bản nháp do AI soạn,

@@ -214,8 +214,88 @@ Hợp đồng CSI đánh dấu byte cuối bằng `sin_last` **đi kèm một by
 vờ test nó. Không ảnh hưởng hệ thống (REQ-F-21 buộc `LEN ∈ [1,512]`), nhưng ai dùng lại
 IP ở dự án khác cần biết.
 
-### WP-04 — IP AES-256 · TT: ⬜
-*(chưa có mục)*
+### WP-04 — IP AES-256 · TT: ✅ Done (2026-09-09)
+
+**Đã làm:** `aes256_round.v`, `aes256_keysched.v`, `aes256_cipher.v`, `aes256_ctr_ip.v`.
+Testbench `tb_aes256_ip.v` **PASS 17/17**. Diện tích **2528 LUT4 / 1357 DFF**.
+
+#### Rút kinh nghiệm từ WP-03: đối chiếu vector TRƯỚC khi viết testbench
+
+Toàn bộ vector AES được chạy qua thư viện `cryptography` của Python và in ra để đối chiếu
+**trước khi** gõ vào file Verilog. Không có vector nào viết từ trí nhớ. Đây là hệ quả trực
+tiếp của việc 2/6 vector SHA ở WP-03 bị sai.
+
+#### Lỗi 1 — độ trễ đọc bộ nhớ khóa vòng: đúng khóa mà vẫn sai kết quả
+
+Bản đầu cho ra bản mã sai hoàn toàn. Dump khóa vòng ra so với FIPS 197 A.3: **cả 15 khóa
+vòng đều đúng**. Dump từng vòng: vòng 1 dùng `rk[0]` thay vì `rk[1]`.
+
+Nguyên nhân: đọc bộ nhớ có thanh ghi nên `rk_rd` ở chu kỳ N là `rk_mem[địa chỉ ở chu kỳ
+N-1]`. Địa chỉ phải chạy trước **hai** nhịp so với chỗ nó được dùng, tôi chỉ cho chạy trước
+một nhịp.
+
+Bài học phương pháp: khi kết quả sai, dump **trạng thái trung gian từng bước** và so với mô
+hình tham chiếu, đừng đoán. Chỉ mất hai lần chạy để khoanh vùng từ "sai hoàn toàn" xuống
+"một dòng gán địa chỉ".
+
+#### Lỗi 2 — 13/15 khóa vòng đúng, hai khóa đầu lệch một byte
+
+Sau khi sửa lỗi 1, cipher đúng khi thử riêng nhưng IP vẫn sai. Dump `rk_mem` ở cấp IP:
+`rk[0] = 0102...0f10` thay vì `000102...0e0f` — lệch đúng một byte. `rk[2..14]` đều đúng.
+
+Nguyên nhân: `aes256_ctr_ip` nối cổng `key` của cipher bằng biểu thức tổ hợp
+`{key_r[247:0], sin_data}` (để ghép byte thứ 32 ngay khi nó tới). Nhưng `keysched` đọc cổng
+`key` ở trạng thái SEED, tức là **một chu kỳ sau**, khi biểu thức đó đã đổi giá trị. Khóa
+vòng 2..14 vẫn đúng vì chúng sinh từ bản đã chốt bên trong (`w`).
+
+Sửa: `ST_SEED` dùng `w` thay vì cổng `key`.
+
+Kiểu lỗi này đặc biệt khó chịu vì **13/15 đúng** — nhìn bảng khóa vòng dễ tưởng là đúng hết.
+
+#### Lỗi 3 — testbench sai, không phải IP sai
+
+TC-107 fail: nạp khóa `K_FIPS` nhưng đối chiếu với keystream của `K_CTR`. Đã sửa test.
+Ghi lại vì đây là lời nhắc: khi một test lẻ fail trong khi 16 test khác pass, khả năng cao
+là test sai chứ không phải thiết kế sai.
+
+#### Vượt ngân sách — và lần này TỐI ƯU THẬT trước khi nới
+
+Bản 16 S-Box đo **2961 LUT4**, vượt REQ-R-03 (2400) 23%. Đây là lần thứ hai một ngân sách
+IP bị vượt; lần đầu (ADR-0007) chỉ nới số, nên lần này bắt buộc phải thử tối ưu thật.
+
+Đo trước để biết cắt ở đâu:
+
+| Thành phần | LUT4 | Tỉ trọng |
+|---|---|---|
+| 16 × `aes256_sbox` | 1296 | **44%** |
+| `aes256_keysched` | 619 | 21% |
+| `aes256_round` | 382 | 13% |
+| bộ nhớ khóa vòng + FSM | ~326 | 11% |
+| `aes256_ctr_ip` | 338 | 11% |
+
+| Thử gì | LUT4 | Nhận xét |
+|---|---|---|
+| Đưa bộ nhớ khóa vòng vào BSRAM | không khả thi | yosys không ánh xạ được mảng 15×128 sang BSRAM Gowin (cổng tối đa 32 bit) |
+| **Giảm 16 → 8 S-Box, 2 chu kỳ/vòng** | 2961 → **2526** | biện pháp dự phòng #3 của ESTIMATION §4, hoạt động đúng như định lượng |
+| Bỏ tầng thanh ghi cổng ra key schedule | 2526 → **2528** | **dự đoán của tôi SAI** |
+
+Về mục cuối: tôi dự đoán tiết kiệm ~130 LUT4. Số đo cho thấy DFF giảm 133 nhưng **LUT4
+không giảm** — các thanh ghi đó ánh xạ thẳng vào ô DFF, không tiêu LUT nào để mà bỏ đi.
+Giữ thay đổi (133 DFF rẻ hơn thì vẫn tốt) nhưng lý do giữ là số đo, không phải lý do ban đầu.
+
+Đây là lần thứ tư trong hai dự án một phép "tối ưu" theo suy đoán không cho kết quả như dự
+đoán. Tỉ lệ hiện tại: 1 đúng (mux 3 chiều ở WP-02, có đo trước) trên 4 lần suy đoán.
+
+Kết luận, ghi ở [`ADR-0008`](../09-decisions/ADR-0008-ngan-sach-aes-sau-toi-uu.md):
+giữ 8 S-Box, nới REQ-R-03 2400→2600 và REQ-P-05 20→32 chu kỳ. **Ngân sách TỔNG
+(REQ-R-01/02) không đổi và chưa hề bị đụng tới** — dự phóng 5880/8640 = 68%.
+
+#### Chỗ phủ chưa đầy đủ, đã ghi vào RTM §4b
+
+REQ-F-05 (key schedule) **không có test trực tiếp** đối chiếu W[0..59]: `aes256_keysched`
+không có cổng quan sát ở mức IP, và thêm cổng đó sẽ vi phạm §7 hợp đồng CSI. Đã đối chiếu
+15/15 khóa vòng bằng testbench gỡ lỗi tạm thời, và nếu key schedule sai thì TC-101/TC-104
+không thể PASS. Ghi rõ là phủ gián tiếp thay vì đánh dấu ✅.
 
 ### WP-05 — Fabric CSI · TT: ⬜
 *(chưa có mục)*
@@ -252,6 +332,12 @@ file trong `evidence/`.
 | 2026-09-09 | `sha256_compress` | 1132 | 352 | 512 | 780 | ❌ +45% | trước khi sửa mux 3 chiều |
 | 2026-09-09 | `sha256_compress` | **892** | 352 | 512 | 780 | ⚠️ +14% | sau khi sửa, −240 LUT4 |
 | 2026-09-09 | **`sha256_ip` (cả IP)** | **1661** | 464 | 1146 | 2000 (REQ-R-04) | ✅ 83% | `make synth-sha`, log ở `evidence/synth/` |
+| 2026-09-09 | `aes256_round` | 382 | 0 | 0 | — | — | tổ hợp thuần |
+| 2026-09-09 | `aes256_keysched` | 619 | — | 496 | — | — | mượn 4 S-Box của cipher |
+| 2026-09-09 | `aes256_ctr_ip` (16 S-Box) | 2961 | 160 | 1425 | 2400 | ❌ 123% | bản đầu |
+| 2026-09-09 | `aes256_ctr_ip` (8 S-Box) | 2526 | 153 | 1490 | 2400 | ❌ 105% | sau biện pháp dự phòng #3 |
+| 2026-09-09 | **`aes256_ctr_ip` (cuối)** | **2528** | 153 | 1357 | 2600 (ADR-0008) | ✅ 97% | `make synth-aes` |
+| 2026-09-09 | `uart_echo_top` (cả `io/`) | 331 | 64 | 222 | — | — | đã nạp board, F_max 140 MHz |
 
 Cách đo: `yosys -p "read_verilog <file>; synth_gowin -no-rw-check -nowidelut -top <mod>"`.
 Cột LUT4 là tổng LUT1+LUT2+LUT3+LUT4 — trên Gowin mọi loại đều chiếm một slot LUT4.
@@ -302,6 +388,10 @@ Phần này quý hơn phần "đã chạy". Ghi lại để không ai (kể cả
 | 6 | Tín hiệu điều khiển SHA đặt trong thanh ghi | K[t] lệch pha với W[t] | `round` tăng trước khi vòng nén chạy. Chuyển sang điều khiển tổ hợp dẫn xuất từ `state` |
 | 7 | Viết vector digest từ trí nhớ thay vì tra nguồn | 2/6 vector SAI | Vector sai làm testbench FAIL trên IP đúng → dễ dẫn tới sửa RTL cho khớp vector sai. Luôn sinh vector từ hiện thực tham chiếu (REQ-V-02) |
 | 8 | Đo diện tích bằng `grep 'LUT' \| awk sum` | 3322 thay vì 1661 — **gấp đôi** | yosys in bảng thống kê hai lần. Dùng `scripts/area.py` |
+| 9 | Cho địa chỉ đọc bộ nhớ khóa vòng chạy trước MỘT nhịp | Vòng 1 dùng `rk[0]`, bản mã sai hoàn toàn | Đọc có thanh ghi nên phải chạy trước HAI nhịp |
+| 10 | Nối cổng `key` của keysched bằng biểu thức tổ hợp `{key_r, sin_data}` | `rk[0]`, `rk[1]` lệch một byte; `rk[2..14]` đúng | Cổng đó đổi giá trị ở chu kỳ sau. Phải dùng bản đã chốt bên trong (`w`) |
+| 11 | Đưa mảng khóa vòng 15×128 vào BSRAM Gowin | Không ánh xạ được | Cổng BSRAM Gowin rộng tối đa 32 bit; yosys rơi về logic phân tán |
+| 12 | Bỏ tầng thanh ghi cổng ra key schedule để cứu LUT | DFF −133 nhưng **LUT4 +2** | Thanh ghi ánh xạ thẳng vào ô DFF, không tiêu LUT nào để bỏ đi |
 | 4 | Chép gán chân UART từ `constraints/tangnano9k.cst` cũ (rx=17, tx=18) | 0/512 byte vọng về | Ngược chân. Đúng là **rx=18, tx=17** — đã đo trên board |
 | 5 | Tin rằng giả thuyết "đảo chân UART" đã bị bác bỏ ở phiên trước | Sai | Kết luận cũ không có số đo đi kèm. Bài học: một giả thuyết chỉ được coi là bác bỏ khi có phép đo, không phải khi có lập luận |
 

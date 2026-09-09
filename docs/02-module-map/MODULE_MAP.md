@@ -49,12 +49,12 @@ rtl/
 
 | Module ID | File | Hiện thực REQ | LUT4 |
 |---|---|---|---|
-| MOD-AES-SBOX | `ip/aes256/aes256_sbox.v` | REQ-F-04 | **đo: 81** × 16 = 1296 |
-| MOD-AES-KEYSCHED | `ip/aes256/aes256_keysched.v` | REQ-F-05 | ~150 (khóa vòng tính sẵn, dùng chung 16 S-Box) |
-| MOD-AES-ROUND | `ip/aes256/aes256_round.v` | REQ-F-01 | 240 |
-| MOD-AES-CIPHER | `ip/aes256/aes256_cipher.v` | REQ-F-01, REQ-F-06, REQ-P-05 | 180 |
-| MOD-AES-IP | `ip/aes256/aes256_ctr_ip.v` | REQ-F-02, REQ-F-03, REQ-F-07, REQ-I-01 | 340 |
-| | | **Cộng AES** | **~2206** (ngưỡng REQ-R-03 = 2400) |
+| MOD-AES-SBOX | `ip/aes256/aes256_sbox.v` | REQ-F-04 | **đo: 81** × **8** = 648 (ADR-0008) |
+| MOD-AES-KEYSCHED | `ip/aes256/aes256_keysched.v` | REQ-F-05 | **đo: 619** (mượn 4 S-Box của cipher) |
+| MOD-AES-ROUND | `ip/aes256/aes256_round.v` | REQ-F-01 | **đo: 382** |
+| MOD-AES-CIPHER | `ip/aes256/aes256_cipher.v` | REQ-F-01, REQ-F-06, REQ-P-05 | (gộp trong số đo IP) |
+| MOD-AES-IP | `ip/aes256/aes256_ctr_ip.v` | REQ-F-02, REQ-F-03, REQ-F-07, REQ-I-01 | (gộp trong số đo IP) |
+| | | **Cộng AES** | **đo cả IP: 2528 LUT4, 1357 DFF** — ngưỡng 2600 ✅ |
 | MOD-SHA-K | `ip/sha256/sha256_k.v` | REQ-F-10 | **đo: 286** |
 | MOD-SHA-SCHED | `ip/sha256/sha256_sched.v` | REQ-F-13 | **đo: 242** (+32 ALU, 512 DFF) |
 | MOD-SHA-COMPRESS | `ip/sha256/sha256_compress.v` | REQ-F-10, REQ-P-06 | **đo: 892** (+352 ALU, 512 DFF) |
@@ -68,12 +68,12 @@ rtl/
 | MOD-PROTO-FSM | `protocol/session_fsm.v` | REQ-F-24, REQ-F-22 | 380 |
 | MOD-FAB-ARB | `fabric/ip_arbiter.v` | REQ-F-25 | 90 |
 | MOD-FAB-MUX | `fabric/stream_mux.v` | REQ-I-01 | 150 |
-| MOD-IO-BAUD | `io/baud_gen.v` | REQ-I-03 | 40 |
+| MOD-IO-BAUD | `io/baud_gen.v` | REQ-I-03 | (gộp: cả `io/` đo 331 trên board) |
 | MOD-IO-URX | `io/uart_rx.v` | REQ-I-03, REQ-I-04, REQ-I-05 | 110 |
 | MOD-IO-UTX | `io/uart_tx.v` | REQ-I-03 | 80 |
 | MOD-IO-LED | `io/led_status.v` | REQ-F-30..32 | 60 |
 | MOD-TOP | `top_secure_link.v` | REQ-N-01 | 80 |
-| | | **Tổng dự phóng** | **≈ 5560 / 8640 (64%)** |
+| | | **Tổng dự phóng** | **≈ 5880 / 8640 (68%)** — trần REQ-R-01 là 7776 |
 
 > **Cập nhật WP-02 (2026-09-09).** Các dòng in đậm là **số đo thật** từ `synth_gowin`,
 > phần còn lại vẫn là ước lượng và phải được đo khi WP tương ứng xong. Ngân sách từng IP
