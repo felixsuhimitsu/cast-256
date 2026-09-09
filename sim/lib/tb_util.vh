@@ -7,15 +7,21 @@
 //=============================================================================
 // Cách dùng:
 //     `include "tb_util.vh"
-//     initial begin
-//         `TB_BEGIN("ten_testbench")
-//         `CHECK_EQ(dut_out, 32'hDEADBEEF, "mo ta phep kiem")
-//         `TB_END
-//     end
+//     module tb_foo;
+//         `TB_DECL                      // <-- BẮT BUỘC, đặt trong module
+//         initial begin
+//             `TB_BEGIN("ten_testbench")
+//             `CHECK_EQ(dut_out, 32'hDEADBEEF, "mo ta phep kiem")
+//             `TB_END
+//         end
+//     endmodule
+//
+// `TB_DECL phải nằm trong module: Verilog không cho khai báo biến ở mức file.
 //=============================================================================
 
-integer tb_pass_count = 0;
-integer tb_fail_count = 0;
+`define TB_DECL \
+    integer tb_pass_count = 0; \
+    integer tb_fail_count = 0;
 
 `define TB_BEGIN(NAME) \
     $display("=========================================================="); \

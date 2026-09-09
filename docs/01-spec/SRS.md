@@ -101,11 +101,15 @@ lại bởi FPGA trên bản rõ đã nhận.
 |---|---|---|---|
 | REQ-R-01 | Tổng LUT4 | ≤ 90% của 8640 (7776) | Báo cáo nextpnr |
 | REQ-R-02 | Tổng DFF | ≤ 80% của 6480 (5184) | như trên |
-| REQ-R-03 | IP AES-256 đứng riêng | ≤ 2200 LUT4 | Tổng hợp riêng module |
-| REQ-R-04 | IP SHA-256 đứng riêng | ≤ 1800 LUT4 | như trên |
+| REQ-R-03 | IP AES-256 đứng riêng | ≤ 2400 LUT4 | Tổng hợp riêng module |
+| REQ-R-04 | IP SHA-256 đứng riêng | ≤ 2000 LUT4 | như trên |
 
 > Các ngưỡng REQ-R-03/04 là **ngân sách**, chốt trước khi viết code, để phát hiện sớm việc
 > vượt diện tích thay vì phát hiện lúc P&R thất bại ở cuối dự án.
+>
+> **Đã điều chỉnh ở WP-02** (2026-09-09): 2200→2400 và 1800→2000, sau khi đo thật S-Box
+> (81 LUT4) và hàm nén SHA (892 LUT4). Ngân sách tổng REQ-R-01/02 giữ nguyên. Xem
+> [`ADR-0007`](../09-decisions/ADR-0007-dieu-chinh-ngan-sach-dien-tich.md).
 
 ## 8. Yêu cầu kiểm chứng
 

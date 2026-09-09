@@ -47,20 +47,20 @@ rtl/
 
 ## 2. Bảng module ↔ requirement
 
-| Module ID | File | Hiện thực REQ | Ngân sách LUT4 |
+| Module ID | File | Hiện thực REQ | LUT4 |
 |---|---|---|---|
-| MOD-AES-SBOX | `ip/aes256/aes256_sbox.v` | REQ-F-04 | 16 × 70 = 1120 |
-| MOD-AES-KEYSCHED | `ip/aes256/aes256_keysched.v` | REQ-F-05 | 320 |
+| MOD-AES-SBOX | `ip/aes256/aes256_sbox.v` | REQ-F-04 | **đo: 81** × 16 = 1296 |
+| MOD-AES-KEYSCHED | `ip/aes256/aes256_keysched.v` | REQ-F-05 | ~150 (khóa vòng tính sẵn, dùng chung 16 S-Box) |
 | MOD-AES-ROUND | `ip/aes256/aes256_round.v` | REQ-F-01 | 240 |
 | MOD-AES-CIPHER | `ip/aes256/aes256_cipher.v` | REQ-F-01, REQ-F-06, REQ-P-05 | 180 |
 | MOD-AES-IP | `ip/aes256/aes256_ctr_ip.v` | REQ-F-02, REQ-F-03, REQ-F-07, REQ-I-01 | 340 |
-| | | **Cộng AES** | **2200** (= REQ-R-03) |
-| MOD-SHA-K | `ip/sha256/sha256_k.v` | REQ-F-10 | 180 |
-| MOD-SHA-SCHED | `ip/sha256/sha256_sched.v` | REQ-F-13 | 420 |
-| MOD-SHA-COMPRESS | `ip/sha256/sha256_compress.v` | REQ-F-10, REQ-P-06 | 780 |
+| | | **Cộng AES** | **~2206** (ngưỡng REQ-R-03 = 2400) |
+| MOD-SHA-K | `ip/sha256/sha256_k.v` | REQ-F-10 | **đo: 286** |
+| MOD-SHA-SCHED | `ip/sha256/sha256_sched.v` | REQ-F-13 | **đo: 242** (+32 ALU, 512 DFF) |
+| MOD-SHA-COMPRESS | `ip/sha256/sha256_compress.v` | REQ-F-10, REQ-P-06 | **đo: 892** (+352 ALU, 512 DFF) |
 | MOD-SHA-PAD | `ip/sha256/sha256_pad.v` | REQ-F-11, REQ-F-12 | 260 |
 | MOD-SHA-IP | `ip/sha256/sha256_ip.v` | REQ-F-14, REQ-I-01 | 160 |
-| | | **Cộng SHA** | **1800** (= REQ-R-04) |
+| | | **Cộng SHA** | **~1840** (ngưỡng REQ-R-04 = 2000) |
 | MOD-PROTO-RX | `protocol/frame_rx.v` | REQ-F-20, REQ-F-21 | 300 |
 | MOD-PROTO-TX | `protocol/frame_tx.v` | REQ-F-20 | 220 |
 | MOD-PROTO-DGST | `protocol/digest_check.v` | REQ-F-22, REQ-F-23 | 120 |
@@ -73,11 +73,14 @@ rtl/
 | MOD-IO-UTX | `io/uart_tx.v` | REQ-I-03 | 80 |
 | MOD-IO-LED | `io/led_status.v` | REQ-F-30..32 | 60 |
 | MOD-TOP | `top_secure_link.v` | REQ-N-01 | 80 |
-| | | **Tổng ngân sách** | **≈ 7690 / 8640 (89%)** |
+| | | **Tổng dự phóng** | **≈ 5740 / 8640 (66%)** |
 
-> Ngân sách này sát trần REQ-R-01 (7776). Đây là cảnh báo có chủ đích: nếu WP-02 đo thấy
-> AES hoặc SHA vượt ngân sách riêng, PHẢI dừng và mở ADR, không được "cứ viết tiếp rồi
-> tính sau". Bài học từ thiết kế trước.
+> **Cập nhật WP-02 (2026-09-09).** Các dòng in đậm là **số đo thật** từ `synth_gowin`,
+> phần còn lại vẫn là ước lượng và phải được đo khi WP tương ứng xong. Ngân sách từng IP
+> đã điều chỉnh theo [`ADR-0007`](../09-decisions/ADR-0007-dieu-chinh-ngan-sach-dien-tich.md).
+>
+> Tổng dự phóng giảm từ 7690 xuống 5740 vì con số 7690 cũ cộng thêm ~2000 "dự phòng tổng
+> hợp" không có cơ sở. Dự phòng thật so với trần REQ-R-01 (7776) hiện là 26%.
 
 ## 3. Bảng "muốn sửa X thì mở file nào"
 

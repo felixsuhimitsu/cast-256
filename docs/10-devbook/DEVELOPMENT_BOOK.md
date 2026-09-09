@@ -57,8 +57,43 @@ dừng và **không sinh ra bitstream nào cả**. Đây là thay đổi thuộc
 ### WP-01 — Đường ống UART trần · TT: ⬜
 *(chưa có mục)*
 
-### WP-02 — Thăm dò diện tích · TT: ⬜
-*(chưa có mục)*
+### WP-02 — Thăm dò diện tích · TT: ✅ Done (2026-09-09)
+
+**Đổi cách làm so với WBS.** Kế hoạch ban đầu là đo "khung rỗng" của AES và SHA. Nhưng
+yosys sẽ tối ưu mất logic rỗng, cho ra số vô nghĩa — đo xong vẫn không biết gì. Thay vào
+đó đã viết và đo **hai khối thật sự tốn diện tích nhất**: S-Box composite field và hàm nén
+SHA-256. Số đo vì thế là số thật, và code viết ra dùng luôn được cho WP-03/WP-04.
+
+**S-Box: sinh hằng số bằng Python trước, viết Verilog sau.**
+`scripts/gen_sbox_basis.py` tìm phép đẳng cấu GF(2^8)→GF(((2²)²)²) bằng cách quét
+(PHI, LAM, nghiệm t), rồi **kiểm đủ 256/256 giá trị so với S-Box FIPS 197 ngay trong
+Python**. Chỉ khi Python báo PASS mới chép hằng số sang Verilog. Kết quả:
+`PHI=2, LAM=8, t=0x41`. Đây là biện pháp trực tiếp cho RSK-03 — nếu để Verilog tự "đúng
+hay sai thì chạy testbench mới biết" thì lỗi lộ ra dưới dạng "vector AES fail" không manh mối.
+
+**Tự kiểm TC-100 bằng lỗi cố ý.** Đổi một hằng số ma trận từ `8'h6C` thành `8'h6D`:
+
+| Phép kiểm | Với S-Box hỏng |
+|---|---|
+| Đối chiếu 256 giá trị | **FAIL** — 128 giá trị sai, exit=1 ✅ |
+| Kiểm song ánh | **vẫn PASS** ⚠️ |
+
+Đúng như RSK-03 dự đoán: S-Box sai vẫn có thể là song ánh. Nếu chỉ kiểm song ánh hoặc chỉ
+thử vài giá trị thì lỗi lọt qua. Đây là lý do REQ-F-04 ghi rõ "đối chiếu **toàn bộ** 256".
+
+**Một tối ưu có đo, và nó thực sự có tác dụng.** `sha256_compress` đo lần đầu 1132 LUT4,
+trong đó 844 là LUT3 — mux 3 chiều trên 256 bit trạng thái `a..h` (ba nhánh
+`init`/`step`/`finalize`). Bỏ việc nạp lại `a..h` ở nhánh `finalize` (khối kế tiếp dùng
+`init` với `h_in = h_out`) → còn 2 nguồn → **892 LUT4, giảm 240 (21%)**.
+
+Khác biệt so với ba lần "tối ưu" thất bại ở §4.1: lần này **đo trước, thấy chỗ tốn, rồi
+mới sửa** — không phải đoán rồi sửa.
+
+**Kết luận gate:** cả hai IP dự phóng vượt ngân sách *riêng* ban đầu, nhưng tổng toàn
+thiết kế chỉ ~5740/8640 (66%), còn xa trần REQ-R-01. Theo đúng thủ tục gate: dừng lại, mở
+[`ADR-0007`](../09-decisions/ADR-0007-dieu-chinh-ngan-sach-dien-tich.md), nới REQ-R-03
+(2200→2400) và REQ-R-04 (1800→2000), giữ nguyên ngân sách tổng. Kèm hai quyết định kiến
+trúc: AES dùng 16 S-Box (không phải 20, khóa vòng tính sẵn), `sha256_k` giữ dạng logic.
 
 ### WP-03 — IP SHA-256 · TT: ⬜
 *(chưa có mục)*
@@ -93,9 +128,17 @@ file trong `evidence/`.
 
 ### 3.1 Tài nguyên theo module (tổng hợp riêng lẻ)
 
-| Ngày | Module | LUT4 | DFF | Ngân sách | Đạt? | Log |
-|---|---|---|---|---|---|---|
-| — | — | — | — | — | — | — |
+| Ngày | Module | LUT4 | ALU | DFF | Ngân sách | Đạt? | Ghi chú |
+|---|---|---|---|---|---|---|---|
+| 2026-09-09 | `aes256_sbox` | **81** | 0 | 0 | 70 | ⚠️ +16% | ×16 = 1296 trong AES |
+| 2026-09-09 | `sha256_sched` | **242** | 32 | 512 | 420 | ✅ −42% | cửa sổ trượt hiệu quả hơn dự kiến |
+| 2026-09-09 | `sha256_k` | **286** | 0 | 0 | 180 | ⚠️ +59% | ROM 64×32 dạng logic |
+| 2026-09-09 | `sha256_compress` | 1132 | 352 | 512 | 780 | ❌ +45% | trước khi sửa mux 3 chiều |
+| 2026-09-09 | `sha256_compress` | **892** | 352 | 512 | 780 | ⚠️ +14% | sau khi sửa, −240 LUT4 |
+
+Cách đo: `yosys -p "read_verilog <file>; synth_gowin -no-rw-check -nowidelut -top <mod>"`.
+Cột LUT4 là tổng LUT1+LUT2+LUT3+LUT4 — trên Gowin mọi loại đều chiếm một slot LUT4.
+Ngân sách đã điều chỉnh theo ADR-0007 sau đợt đo này.
 
 ### 3.2 Tài nguyên toàn thiết kế
 
@@ -132,7 +175,10 @@ Phần này quý hơn phần "đã chạy". Ghi lại để không ai (kể cả
 
 ### 4.2 Trong dự án này
 
-*(chưa có mục)*
+| # | Đã thử | Kết quả | Vì sao |
+|---|---|---|---|
+| 1 | Đo "khung rỗng" của IP để thăm dò diện tích (theo WBS ban đầu) | Bỏ, không làm | yosys tối ưu mất logic rỗng → số vô nghĩa. Đổi sang đo hai khối tốn nhất và viết thật |
+| 2 | Gán `a..h` ở cả ba nhánh init/step/finalize trong `sha256_compress` | 1132 LUT4, trong đó 844 LUT3 | Mỗi bit trong 256 bit cần mux 3 chiều. Bỏ nhánh `finalize` → 892 LUT4 |
 
 ---
 
