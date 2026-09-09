@@ -66,8 +66,8 @@ rtl/
 | MOD-PROTO-DGST | `protocol/digest_check.v` | REQ-F-22, REQ-F-23 | 120 |
 | MOD-PROTO-BUF | `protocol/frame_buffer.v` | REQ-F-21 | 60 + 4 BSRAM |
 | MOD-PROTO-FSM | `protocol/session_fsm.v` | REQ-F-24, REQ-F-22 | 380 |
-| MOD-FAB-ARB | `fabric/ip_arbiter.v` | REQ-F-25 | 90 |
-| MOD-FAB-MUX | `fabric/stream_mux.v` | REQ-I-01 | 150 |
+| MOD-FAB-ARB | `fabric/ip_arbiter.v` | REQ-F-25 | **đo: 7** |
+| MOD-FAB-MUX | `fabric/stream_mux.v` | REQ-I-01 | **đo: 279** |
 | MOD-IO-BAUD | `io/baud_gen.v` | REQ-I-03 | (gộp: cả `io/` đo 331 trên board) |
 | MOD-IO-URX | `io/uart_rx.v` | REQ-I-03, REQ-I-04, REQ-I-05 | 110 |
 | MOD-IO-UTX | `io/uart_tx.v` | REQ-I-03 | 80 |

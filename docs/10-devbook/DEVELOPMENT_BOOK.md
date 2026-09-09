@@ -297,8 +297,39 @@ không có cổng quan sát ở mức IP, và thêm cổng đó sẽ vi phạm �
 15/15 khóa vòng bằng testbench gỡ lỗi tạm thời, và nếu key schedule sai thì TC-101/TC-104
 không thể PASS. Ghi rõ là phủ gián tiếp thay vì đánh dấu ✅.
 
-### WP-05 — Fabric CSI · TT: ⬜
-*(chưa có mục)*
+### WP-05 — Fabric CSI · TT: ✅ Done (2026-09-09)
+
+**Đã làm:** `ip_arbiter.v` (7 LUT4, 3 DFF), `stream_mux.v` (279 LUT4, tổ hợp thuần),
+`sim/lib/csi_stub_ip.v` (IP giả lập), `tb_fabric.v` **PASS 17/17**.
+
+**Dùng IP giả lập, không dùng IP thật.** Nếu cắm AES/SHA thật vào testbench fabric thì lỗi
+ở fabric và lỗi ở IP sẽ trộn lẫn, và khi test fail sẽ không biết đổ cho bên nào. IP giả lập
+đơn giản tới mức chắc chắn đúng, nên mọi lỗi còn lại đều thuộc về fabric. Một module giả lập
+tham số hóa đóng được cả hai vai: kiểu AES (có dòng ra, không kết quả) và kiểu SHA (không
+dòng ra, có kết quả).
+
+**TC-402 là phép thử thật của hợp đồng CSI.** Nó cho hai IP có hành vi *khác hẳn nhau* chạy
+qua cùng một `stream_mux` mà không sửa một dòng nào. Nếu `stream_mux` có bất kỳ giả định nào
+kiểu "IP0 là AES" thì phần này fail. Đây là điều biến đề tài từ "hai khối mật mã" thành
+"hai IP tích hợp được".
+
+**Loại trừ tương hỗ được cưỡng chế ở HAI chỗ**, không phải một:
+1. `ip_arbiter` chỉ cấp one-hot và giữ quyền tới khi bên yêu cầu nhả **và** IP hết bận.
+2. `stream_mux` **chặn** `start`/`valid` tới mọi IP không được cấp quyền. Không chỉ tin
+   bên điều phối cư xử đúng.
+
+**`viol_concurrent` là chốt cảnh báo phần cứng, không phải chỉ mô phỏng.** Nếu hai IP cùng
+báo bận thì cờ này bật và giữ; nó sẽ được nối ra LED lỗi ở WP-07. Nghĩa là vi phạm REQ-F-25
+nhìn thấy được trên board thật, chứ không chỉ thấy trong testbench.
+
+**Hai lỗi tìm được — đều ở testbench, không phải RTL:**
+1. `use_ip` đặt lại `rxlen = 0` ở đầu mỗi lượt, nhưng phép kiểm lại giả định giá trị được
+   giữ từ lượt trước.
+2. Kiểm `m_result` **sau khi** đã nhả quyền. Lúc đó `grant = 0` nên mux trả về 0 — đúng
+   hành vi mong muốn. Phải chốt kết quả tại đúng chu kỳ `m_done`.
+
+Ghi lại vì cả hai đều là kiểu "test sai chứ không phải thiết kế sai", giống TC-107 ở WP-04.
+Khi một vài phép kiểm lẻ fail giữa một loạt phép kiểm pass, nghi ngờ test trước.
 
 ### WP-06 — Lớp giao thức · TT: ⬜
 *(chưa có mục)*
@@ -338,6 +369,8 @@ file trong `evidence/`.
 | 2026-09-09 | `aes256_ctr_ip` (8 S-Box) | 2526 | 153 | 1490 | 2400 | ❌ 105% | sau biện pháp dự phòng #3 |
 | 2026-09-09 | **`aes256_ctr_ip` (cuối)** | **2528** | 153 | 1357 | 2600 (ADR-0008) | ✅ 97% | `make synth-aes` |
 | 2026-09-09 | `uart_echo_top` (cả `io/`) | 331 | 64 | 222 | — | — | đã nạp board, F_max 140 MHz |
+| 2026-09-09 | `ip_arbiter` | 7 | 0 | 3 | 90 | ✅ | rẻ hơn ước lượng 13 lần |
+| 2026-09-09 | `stream_mux` | 279 | 0 | 0 | 150 | ⚠️ +86% | tổ hợp thuần; giá của việc tích hợp IP |
 
 Cách đo: `yosys -p "read_verilog <file>; synth_gowin -no-rw-check -nowidelut -top <mod>"`.
 Cột LUT4 là tổng LUT1+LUT2+LUT3+LUT4 — trên Gowin mọi loại đều chiếm một slot LUT4.

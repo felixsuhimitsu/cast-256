@@ -58,7 +58,7 @@ Bảng này là **gate cuối** của dự án (WP-10). Điều kiện đóng:
 | REQ-F-22 | Chỉ phát khi digest khớp | WP-06 | MOD-PROTO-DGST, MOD-PROTO-FSM | TC-502, TC-503, TC-603 | TBD | ⬜ |
 | REQ-F-23 | So sánh digest hằng thời | WP-06 | MOD-PROTO-DGST | TC-507 | TBD | ⬜ |
 | REQ-F-24 | Watchdog 2²⁴ chu kỳ | WP-06 | MOD-PROTO-FSM | TC-506, TC-604 | TBD | ⬜ |
-| REQ-F-25 | AES và SHA loại trừ tương hỗ | WP-05 | MOD-FAB-ARB | TC-400, TC-401 | TBD | ⬜ |
+| REQ-F-25 | AES và SHA loại trừ tương hỗ | WP-05 | MOD-FAB-ARB, MOD-FAB-MUX | TC-400, TC-401 | assertion mọi chu kỳ: 0 lần hai IP cùng bận; grant luôn one-hot | ✅ |
 | REQ-F-30 | LED0 đang nhận | WP-07 | MOD-IO-LED | TC-606 | TBD | ⬜ |
 | REQ-F-31 | LED1 engine bận | WP-07 | MOD-IO-LED | TC-606 | TBD | ⬜ |
 | REQ-F-32 | LED2 chớp khi loại khung | WP-07 | MOD-IO-LED | TC-606 | TBD | ⬜ |
@@ -67,7 +67,7 @@ Bảng này là **gate cuối** của dự án (WP-10). Điều kiện đóng:
 
 | REQ | Mô tả ngắn | WP | Module | Test | Bằng chứng | TT |
 |---|---|---|---|---|---|---|
-| REQ-I-01 | Hai IP cùng hợp đồng CSI | WP-04, WP-05 | MOD-AES-IP, MOD-SHA-IP, MOD-FAB-MUX | TC-108, TC-207, TC-402, TC-403 | `csi_checker` 0 vi phạm ở CẢ HAI IP | 🚧 (còn TC-402/403) |
+| REQ-I-01 | Hai IP cùng hợp đồng CSI | WP-04, WP-05 | MOD-AES-IP, MOD-SHA-IP, MOD-FAB-MUX | TC-108, TC-207, TC-402, TC-403 | `csi_checker` 0 vi phạm ở cả hai IP; TC-402 đổi chỗ hai IP không sửa mux | ✅ |
 | REQ-I-02 | Bắt tay valid/ready đúng H1–H5 | WP-04 | tất cả IP | TC-108, TC-207 | H2/H5 kiểm mọi chu kỳ, 0 vi phạm | ✅ |
 | REQ-I-03 | UART 8-N-1 115200 | WP-01 | MOD-IO-URX, MOD-IO-UTX, MOD-IO-BAUD | TC-300 | `make sim-uart` 10/10 PASS | ✅ |
 | REQ-I-04 | Biểu quyết 3 điểm | WP-01 | MOD-IO-URX | TC-301, TC-302 | TC-301 8/8 sau khi sửa lỗi vote | ✅ |
@@ -134,7 +134,7 @@ phải hoặc gắn REQ, hoặc xóa.
 
 | Chỉ số | Định nghĩa | Mục tiêu | Hiện tại |
 |---|---|---|---|
-| Traceability coverage | % REQ có đủ module + test + bằng chứng | 100% | 19/39 = 49% |
+| Traceability coverage | % REQ có đủ module + test + bằng chứng | 100% | 21/39 = 54% |
 | Orphan rate (REQ) | % REQ không có code/test | 0% | 0% |
 | Orphan rate (module) | % module không có REQ | 0% | 0% |
 | Freshness | % tài liệu khớp commit hiện tại | 100% | 100% |
