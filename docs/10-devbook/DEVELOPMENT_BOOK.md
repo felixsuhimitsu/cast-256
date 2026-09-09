@@ -153,8 +153,66 @@ thiết kế chỉ ~5740/8640 (66%), còn xa trần REQ-R-01. Theo đúng thủ 
 (2200→2400) và REQ-R-04 (1800→2000), giữ nguyên ngân sách tổng. Kèm hai quyết định kiến
 trúc: AES dùng 16 S-Box (không phải 20, khóa vòng tính sẵn), `sha256_k` giữ dạng logic.
 
-### WP-03 — IP SHA-256 · TT: ⬜
-*(chưa có mục)*
+### WP-03 — IP SHA-256 · TT: ✅ Done (2026-09-09)
+
+**Đã làm:** `sha256_pad.v` (đệm FIPS 180-4) + `sha256_ip.v` (đỉnh IP theo hợp đồng CSI),
+ghép với `sha256_k/sched/compress` đã viết ở WP-02. Testbench `tb_sha256_ip.v` **PASS 17/17**.
+Diện tích **1661 LUT4 / 1146 DFF / 464 ALU** — dưới ngưỡng REQ-R-04 (2000), dùng 83% ngân sách.
+
+#### Lỗi 1 — điều khiển có thanh ghi làm lệch pha K[t] với W[t]
+
+Bản đầu dùng tín hiệu điều khiển được ghi vào thanh ghi (`cmp_step <= 1'b1`). Hệ quả:
+`round` tăng ở chu kỳ trước khi vòng nén tương ứng thực sự chạy, nên `K[1]` bị ghép với
+`W[0]`. Đã phát hiện khi phân tích dạng sóng bằng tay trước cả khi chạy testbench.
+
+Sửa: chuyển toàn bộ tín hiệu điều khiển sang **tổ hợp** dẫn xuất trực tiếp từ `state`.
+Khi đó trong mỗi chu kỳ `ST_COMPRESS`, các đại lượng `round`, `w_t`, `k_t` và `step` đều
+thuộc cùng một vòng. Thêm một trạng thái `ST_CINIT` một chu kỳ để nạp trạng thái H.
+
+#### Lỗi 2 — tớ tự bịa vector kiểm chứng
+
+Bản testbench đầu tiên có sáu giá trị digest cho các độ dài 55/56/63/64/119 byte được
+viết ra từ trí nhớ, không tra nguồn. Khi đối chiếu lại bằng `hashlib`:
+
+| Độ dài | Giá trị đã viết | Đúng? |
+|---|---|---|
+| 55 byte | `9f4390f8…0f734318` | đúng |
+| **56 byte** | `…ef797686_86b6b6f3` | **SAI** (đúng là `…ef797068_6ec6738a`) |
+| 63, 64 byte | — | đúng |
+| **119 byte** | `1c8bfa4a…5d4f0b56` | **SAI hoàn toàn** |
+
+Nếu để nguyên, hai vector sai này sẽ làm testbench FAIL trên một IP **đúng**, và nhiều
+khả năng phản ứng tiếp theo là đi sửa RTL cho khớp vector sai. Đây chính là điều REQ-V-02
+cấm: **không dùng vector tự sinh làm nguồn sự thật**.
+
+Đã thay toàn bộ bằng giá trị sinh từ `hashlib` (hiện thực tham chiếu của FIPS 180-4) và
+ghi rõ nguồn trong testbench.
+
+#### Lỗi 3 — vi phạm hợp đồng CSI ở nhánh lỗi
+
+`csi_checker` bắt được 2 vi phạm khi `csi_mode` không hợp lệ: IP báo `csi_done` ngay
+trong `ST_IDLE`, tức là `done` lên khi chưa từng `busy` (INV-1), và `busy` không bao giờ
+lên sau `start` (INV-4).
+
+Có hai cách sửa: nới hợp đồng, hoặc sửa IP. **Chọn sửa IP** — thêm trạng thái `ST_ERR`
+một chu kỳ. Hợp đồng là ranh giới của đề tài; nới nó ra để code dễ hơn là làm hỏng đúng
+thứ đang được chấm điểm.
+
+#### Lỗi 4 — đo diện tích bằng grep cho số GẤP ĐÔI
+
+Lần đo đầu báo **3322 LUT4**, tức là vượt ngưỡng 2000 rất xa và suýt nữa dẫn tới một
+đợt "tối ưu" không cần thiết. Nguyên nhân: yosys in bảng thống kê **hai lần** (một cho
+module, một cho `design hierarchy`), và lệnh `grep | awk` cộng cả hai. Số thật là **1661**.
+
+Đã viết `scripts/area.py` chỉ lấy khối đầu tiên, và thay `grep|awk` trong Makefile bằng
+script này. Một gate cho số sai còn tệ hơn không có gate.
+
+#### Giới hạn thật, đã ghi vào SRS §10.4
+
+Hợp đồng CSI đánh dấu byte cuối bằng `sin_last` **đi kèm một byte hợp lệ**, nên **thông
+điệp độ dài 0 không biểu diễn được**. Đã bỏ độ dài 0 khỏi tiêu chí REQ-F-11 thay vì giả
+vờ test nó. Không ảnh hưởng hệ thống (REQ-F-21 buộc `LEN ∈ [1,512]`), nhưng ai dùng lại
+IP ở dự án khác cần biết.
 
 ### WP-04 — IP AES-256 · TT: ⬜
 *(chưa có mục)*
@@ -193,6 +251,7 @@ file trong `evidence/`.
 | 2026-09-09 | `sha256_k` | **286** | 0 | 0 | 180 | ⚠️ +59% | ROM 64×32 dạng logic |
 | 2026-09-09 | `sha256_compress` | 1132 | 352 | 512 | 780 | ❌ +45% | trước khi sửa mux 3 chiều |
 | 2026-09-09 | `sha256_compress` | **892** | 352 | 512 | 780 | ⚠️ +14% | sau khi sửa, −240 LUT4 |
+| 2026-09-09 | **`sha256_ip` (cả IP)** | **1661** | 464 | 1146 | 2000 (REQ-R-04) | ✅ 83% | `make synth-sha`, log ở `evidence/synth/` |
 
 Cách đo: `yosys -p "read_verilog <file>; synth_gowin -no-rw-check -nowidelut -top <mod>"`.
 Cột LUT4 là tổng LUT1+LUT2+LUT3+LUT4 — trên Gowin mọi loại đều chiếm một slot LUT4.
@@ -240,6 +299,9 @@ Phần này quý hơn phần "đã chạy". Ghi lại để không ai (kể cả
 | 1 | Đo "khung rỗng" của IP để thăm dò diện tích (theo WBS ban đầu) | Bỏ, không làm | yosys tối ưu mất logic rỗng → số vô nghĩa. Đổi sang đo hai khối tốn nhất và viết thật |
 | 2 | Gán `a..h` ở cả ba nhánh init/step/finalize trong `sha256_compress` | 1132 LUT4, trong đó 844 LUT3 | Mỗi bit trong 256 bit cần mux 3 chiều. Bỏ nhánh `finalize` → 892 LUT4 |
 | 3 | Dùng `vote` ngay tại chu kỳ lấy mẫu thứ ba trong `uart_rx` | TC-301 FAIL 6/8 | Gán nonblocking: `samples[2]` chưa cập nhật, vote đọc giá trị cũ. Phải quyết định ở `S2+1` |
+| 6 | Tín hiệu điều khiển SHA đặt trong thanh ghi | K[t] lệch pha với W[t] | `round` tăng trước khi vòng nén chạy. Chuyển sang điều khiển tổ hợp dẫn xuất từ `state` |
+| 7 | Viết vector digest từ trí nhớ thay vì tra nguồn | 2/6 vector SAI | Vector sai làm testbench FAIL trên IP đúng → dễ dẫn tới sửa RTL cho khớp vector sai. Luôn sinh vector từ hiện thực tham chiếu (REQ-V-02) |
+| 8 | Đo diện tích bằng `grep 'LUT' \| awk sum` | 3322 thay vì 1661 — **gấp đôi** | yosys in bảng thống kê hai lần. Dùng `scripts/area.py` |
 | 4 | Chép gán chân UART từ `constraints/tangnano9k.cst` cũ (rx=17, tx=18) | 0/512 byte vọng về | Ngược chân. Đúng là **rx=18, tx=17** — đã đo trên board |
 | 5 | Tin rằng giả thuyết "đảo chân UART" đã bị bác bỏ ở phiên trước | Sai | Kết luận cũ không có số đo đi kèm. Bài học: một giả thuyết chỉ được coi là bác bỏ khi có phép đo, không phải khi có lập luận |
 

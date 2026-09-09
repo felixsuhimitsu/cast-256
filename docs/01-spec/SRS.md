@@ -33,7 +33,7 @@ Từ khóa **PHẢI / NÊN / CÓ THỂ** dùng theo nghĩa RFC 2119.
 | ID | Yêu cầu | Tiêu chí chấp nhận |
 |---|---|---|
 | REQ-F-10 | IP PHẢI hiện thực SHA-256 chuẩn FIPS 180-4: 64 vòng, 8 biến trạng thái, hằng K đúng. | Khớp `abc` → `ba7816bf…f20015ad`. |
-| REQ-F-11 | IP PHẢI tự thực hiện đệm (padding): bit 1, các bit 0, độ dài 64 bit big-endian. | TC cho các độ dài 0, 1, 55, 56, 63, 64, 119, 120 byte. |
+| REQ-F-11 | IP PHẢI tự thực hiện đệm (padding): bit 1, các bit 0, độ dài 64 bit big-endian. | TC cho các độ dài 1, 55, 56, 63, 64, 119, 120 byte. **Độ dài 0 không nằm trong phạm vi** — xem ghi chú §10.4. |
 | REQ-F-12 | IP PHẢI xử lý được thông điệp nhiều khối (>64 byte) bằng cách nối trạng thái. | TC chuỗi 1.000.000 ký tự 'a' cho `cdc76e5c…2f92a0` (chạy trong mô phỏng, không trên board). |
 | REQ-F-13 | Bộ lập lịch thông điệp (message schedule) PHẢI dùng cửa sổ trượt 16 word, không lưu cả 64 word. | Xem `ADR-0003`. Kiểm bằng đếm DFF sau tổng hợp. |
 | REQ-F-14 | IP PHẢI xuất digest 256 bit kèm một xung `digest_valid` rộng đúng 1 chu kỳ. | TC kiểm độ rộng xung. |
@@ -141,3 +141,8 @@ lại bởi FPGA trên bản rõ đã nhận.
    100%, nhưng không vừa thiết bị. Xem `ADR-0004`.
 3. **Không chống kênh kề.** Thời gian chạy AES là hằng định (kiến trúc lặp, không phụ
    thuộc dữ liệu), nhưng không có biện pháp chống phân tích công suất.
+4. **Không băm được thông điệp rỗng.** Hợp đồng CSI đánh dấu byte cuối bằng `sin_last`
+   đi kèm *một byte hợp lệ*, nên thông điệp độ dài 0 không biểu diễn được qua giao diện
+   này. Phát hiện ở WP-03. Không ảnh hưởng tới hệ thống vì REQ-F-21 đã ràng buộc
+   `LEN ∈ [1, 512]`, nhưng ai dùng lại IP SHA-256 ở dự án khác cần biết. Muốn hỗ trợ thì
+   phải thêm một `csi_mode` "băm rỗng" — thay đổi hợp đồng, thuộc vùng ĐỎ.

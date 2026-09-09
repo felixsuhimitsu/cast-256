@@ -60,8 +60,8 @@ help:
 	@echo "    make sim           Tất cả"
 	@echo ""
 	@echo "  TỔNG HỢP"
-	@echo "    make synth-aes     Tổng hợp riêng IP AES  (gate REQ-R-03: <= 2200 LUT4)"
-	@echo "    make synth-sha     Tổng hợp riêng IP SHA  (gate REQ-R-04: <= 1800 LUT4)"
+	@echo "    make synth-aes     Tổng hợp riêng IP AES  (gate REQ-R-03: <= 2400 LUT4)"
+	@echo "    make synth-sha     Tổng hợp riêng IP SHA  (gate REQ-R-04: <= 2000 LUT4)"
 	@echo "    make synth         Toàn thiết kế + P&R    (gate REQ-R-01/02, REQ-P-01)"
 	@echo ""
 	@echo "  PHẦN CỨNG (L3 — chạy tiền cảnh, KHÔNG chạy nền)"
@@ -137,17 +137,19 @@ define synth_ip
 	@mkdir -p $(SYNTH_DIR)
 	@yosys -p "read_verilog $(2); \
 	           synth_gowin $(YOSYS_FLAGS) -top $(1) -json $(SYNTH_DIR)/$(1).json" \
-	       2>&1 | tee $(SYNTH_DIR)/$(1)_yosys.log
+	       > $(SYNTH_DIR)/$(1)_yosys.log 2>&1
 	@echo "--- số LUT4 thật ---"
-	@grep -E 'LUT[0-9]|DFF' $(SYNTH_DIR)/$(1)_yosys.log | tail -20
+	@# KHONG dung grep|awk o day: yosys in bang thong ke HAI LAN nen se cong doi.
+	@# scripts/area.py chi lay khoi dau tien. Xem DEVELOPMENT_BOOK §4.2.
+	@$(SYSPY) scripts/area.py $(SYNTH_DIR)/$(1)_yosys.log $(1) $(3)
 	@cp $(SYNTH_DIR)/$(1)_yosys.log $(EVIDENCE)/synth/ 2>/dev/null || true
 endef
 
 synth-aes: dirs
-	$(call synth_ip,aes256_ctr_ip,$(RTL_AES),2200)
+	$(call synth_ip,aes256_ctr_ip,$(RTL_AES),2400)
 
 synth-sha: dirs
-	$(call synth_ip,sha256_ip,$(RTL_SHA),1800)
+	$(call synth_ip,sha256_ip,$(RTL_SHA),2000)
 
 #-----------------------------------------------------------------------------
 # TỔNG HỢP TOÀN THIẾT KẾ

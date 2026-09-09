@@ -58,9 +58,9 @@ rtl/
 | MOD-SHA-K | `ip/sha256/sha256_k.v` | REQ-F-10 | **đo: 286** |
 | MOD-SHA-SCHED | `ip/sha256/sha256_sched.v` | REQ-F-13 | **đo: 242** (+32 ALU, 512 DFF) |
 | MOD-SHA-COMPRESS | `ip/sha256/sha256_compress.v` | REQ-F-10, REQ-P-06 | **đo: 892** (+352 ALU, 512 DFF) |
-| MOD-SHA-PAD | `ip/sha256/sha256_pad.v` | REQ-F-11, REQ-F-12 | 260 |
-| MOD-SHA-IP | `ip/sha256/sha256_ip.v` | REQ-F-14, REQ-I-01 | 160 |
-| | | **Cộng SHA** | **~1840** (ngưỡng REQ-R-04 = 2000) |
+| MOD-SHA-PAD | `ip/sha256/sha256_pad.v` | REQ-F-11, REQ-F-12 | (gộp trong số đo IP) |
+| MOD-SHA-IP | `ip/sha256/sha256_ip.v` | REQ-F-14, REQ-I-01 | (gộp trong số đo IP) |
+| | | **Cộng SHA** | **đo cả IP: 1661 LUT4, 1146 DFF, 464 ALU** — ngưỡng 2000 ✅ |
 | MOD-PROTO-RX | `protocol/frame_rx.v` | REQ-F-20, REQ-F-21 | 300 |
 | MOD-PROTO-TX | `protocol/frame_tx.v` | REQ-F-20 | 220 |
 | MOD-PROTO-DGST | `protocol/digest_check.v` | REQ-F-22, REQ-F-23 | 120 |
@@ -73,7 +73,7 @@ rtl/
 | MOD-IO-UTX | `io/uart_tx.v` | REQ-I-03 | 80 |
 | MOD-IO-LED | `io/led_status.v` | REQ-F-30..32 | 60 |
 | MOD-TOP | `top_secure_link.v` | REQ-N-01 | 80 |
-| | | **Tổng dự phóng** | **≈ 5740 / 8640 (66%)** |
+| | | **Tổng dự phóng** | **≈ 5560 / 8640 (64%)** |
 
 > **Cập nhật WP-02 (2026-09-09).** Các dòng in đậm là **số đo thật** từ `synth_gowin`,
 > phần còn lại vẫn là ước lượng và phải được đo khi WP tương ứng xong. Ngân sách từng IP

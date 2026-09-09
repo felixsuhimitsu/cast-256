@@ -43,11 +43,11 @@ Bảng này là **gate cuối** của dự án (WP-10). Điều kiện đóng:
 
 | REQ | Mô tả ngắn | WP | Module | Test | Bằng chứng | TT |
 |---|---|---|---|---|---|---|
-| REQ-F-10 | SHA-256 64 vòng FIPS 180-4 | WP-03 | MOD-SHA-COMPRESS, MOD-SHA-K | TC-200, TC-202 | TBD | ⬜ |
-| REQ-F-11 | Tự đệm theo chuẩn | WP-03 | MOD-SHA-PAD | TC-201, TC-203 | TBD | ⬜ |
-| REQ-F-12 | Thông điệp nhiều khối | WP-03 | MOD-SHA-PAD, MOD-SHA-IP | TC-204 | TBD | ⬜ |
-| REQ-F-13 | Cửa sổ trượt 16 word | WP-03 | MOD-SHA-SCHED | TC-208 + báo cáo DFF | TBD | ⬜ |
-| REQ-F-14 | Xung `digest_valid` 1 chu kỳ | WP-03 | MOD-SHA-IP | TC-206 | TBD | ⬜ |
+| REQ-F-10 | SHA-256 64 vòng FIPS 180-4 | WP-03 | MOD-SHA-COMPRESS, MOD-SHA-K | TC-202 | `make sim-sha` — SHA("abc") khớp | ✅ |
+| REQ-F-11 | Tự đệm theo chuẩn | WP-03 | MOD-SHA-PAD | TC-203 | 1/55/56/63/64/119/120 byte đều khớp | ✅ |
+| REQ-F-12 | Thông điệp nhiều khối | WP-03 | MOD-SHA-PAD, MOD-SHA-IP | TC-203 (119, 120 byte = 2–3 khối) | khớp | ✅ |
+| REQ-F-13 | Cửa sổ trượt 16 word | WP-03 | MOD-SHA-SCHED | TC-208 + đo DFF | 512 DFF (thay vì 2048) | ✅ |
+| REQ-F-14 | Xung `digest_valid` 1 chu kỳ | WP-03 | MOD-SHA-IP | TC-206 | độ rộng đo được = 1 | ✅ |
 
 ### 3.3 Giao thức
 
@@ -82,7 +82,7 @@ Bảng này là **gate cuối** của dự án (WP-10). Điều kiện đóng:
 | REQ-P-03 | Độ trễ ≤ 40 ms | WP-08 | TC-602 | TBD | ⬜ |
 | REQ-P-04 | Thông lượng ≥ 8000 B/s | WP-08 | TC-602 | TBD | ⬜ |
 | REQ-P-05 | AES ≤ 20 chu kỳ/khối | WP-04 | TC-103 | TBD | ⬜ |
-| REQ-P-06 | SHA ≤ 70 chu kỳ/khối | WP-03 | TC-205 | TBD | ⬜ |
+| REQ-P-06 | SHA ≤ 70 chu kỳ/khối | WP-03 | TC-205 | 65 chu kỳ nén (1 init + 64 vòng) | ✅ |
 
 ### 3.6 Tài nguyên
 
@@ -91,7 +91,7 @@ Bảng này là **gate cuối** của dự án (WP-10). Điều kiện đóng:
 | REQ-R-01 | LUT4 ≤ 7776 | WP-07 | nextpnr | TBD | ⬜ |
 | REQ-R-02 | DFF ≤ 5184 | WP-07 | nextpnr | TBD | ⬜ |
 | REQ-R-03 | AES ≤ 2400 LUT4 (ADR-0007) | WP-02, WP-04 | tổng hợp riêng | S-Box đo 81 ×16 = 1296 | 🚧 |
-| REQ-R-04 | SHA ≤ 2000 LUT4 (ADR-0007) | WP-02, WP-03 | tổng hợp riêng | sched+k+compress đo 1420 | 🚧 |
+| REQ-R-04 | SHA ≤ 2000 LUT4 (ADR-0007) | WP-03 | `make synth-sha` | **1661 LUT4 (83% ngân sách)** | ✅ |
 
 ### 3.7 Kiểm chứng & phi chức năng
 
@@ -128,7 +128,7 @@ phải hoặc gắn REQ, hoặc xóa.
 
 | Chỉ số | Định nghĩa | Mục tiêu | Hiện tại |
 |---|---|---|---|
-| Traceability coverage | % REQ có đủ module + test + bằng chứng | 100% | 4/39 = 10% |
+| Traceability coverage | % REQ có đủ module + test + bằng chứng | 100% | 11/39 = 28% |
 | Orphan rate (REQ) | % REQ không có code/test | 0% | 0% |
 | Orphan rate (module) | % module không có REQ | 0% | 0% |
 | Freshness | % tài liệu khớp commit hiện tại | 100% | 100% |
