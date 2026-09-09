@@ -34,7 +34,7 @@ Bảng này là **gate cuối** của dự án (WP-10). Điều kiện đóng:
 | REQ-F-01 | AES-256 14 vòng FIPS 197 | WP-04 | MOD-AES-ROUND, MOD-AES-CIPHER | TC-101 | TBD | ⬜ |
 | REQ-F-02 | Chế độ CTR SP 800-38A | WP-04 | MOD-AES-IP | TC-104 | TBD | ⬜ |
 | REQ-F-03 | Counter 128-bit, wrap đúng | WP-04 | MOD-AES-IP | TC-105 | TBD | ⬜ |
-| REQ-F-04 | S-Box composite field | WP-04 | MOD-AES-SBOX | TC-100 | TBD | ⬜ |
+| REQ-F-04 | S-Box composite field | WP-04 | MOD-AES-SBOX | TC-100 | `sim/unit/tb_sbox.v` 256/256 PASS | ✅ |
 | REQ-F-05 | Key schedule 15 khóa vòng | WP-04 | MOD-AES-KEYSCHED | TC-102 | TBD | ⬜ |
 | REQ-F-06 | Dùng chung cipher cho cả hai chiều | WP-04 | MOD-AES-CIPHER | TC-106 | TBD | ⬜ |
 | REQ-F-07 | Bỏ qua `start` khi busy | WP-04 | MOD-AES-IP | TC-107 | TBD | ⬜ |
@@ -69,9 +69,9 @@ Bảng này là **gate cuối** của dự án (WP-10). Điều kiện đóng:
 |---|---|---|---|---|---|---|
 | REQ-I-01 | Hai IP cùng hợp đồng CSI | WP-05 | MOD-AES-IP, MOD-SHA-IP, MOD-FAB-MUX | TC-108, TC-207, TC-402, TC-403, TC-109 | TBD | ⬜ |
 | REQ-I-02 | Bắt tay valid/ready đúng H1–H5 | WP-05 | tất cả IP | TC-108, TC-207 | TBD | ⬜ |
-| REQ-I-03 | UART 8-N-1 115200 | WP-01 | MOD-IO-URX, MOD-IO-UTX, MOD-IO-BAUD | TC-300 | TBD | ⬜ |
-| REQ-I-04 | Biểu quyết 3 điểm | WP-01 | MOD-IO-URX | TC-301, TC-302 | TBD | ⬜ |
-| REQ-I-05 | Nhả IDLE sau bit stop | WP-01 | MOD-IO-URX | **TC-600** | TBD | ⬜ |
+| REQ-I-03 | UART 8-N-1 115200 | WP-01 | MOD-IO-URX, MOD-IO-UTX, MOD-IO-BAUD | TC-300 | `make sim-uart` 10/10 PASS | ✅ |
+| REQ-I-04 | Biểu quyết 3 điểm | WP-01 | MOD-IO-URX | TC-301, TC-302 | TC-301 8/8 sau khi sửa lỗi vote | ✅ |
+| REQ-I-05 | Nhả IDLE sau bit stop | WP-01 | MOD-IO-URX | **TC-600** | board thật: 4096/4096, 0 mất — `evidence/hw/20260909-2230-*.log` | ✅ |
 
 ### 3.5 Hiệu năng — chỉ phủ được bằng phần cứng
 
@@ -90,8 +90,8 @@ Bảng này là **gate cuối** của dự án (WP-10). Điều kiện đóng:
 |---|---|---|---|---|---|
 | REQ-R-01 | LUT4 ≤ 7776 | WP-07 | nextpnr | TBD | ⬜ |
 | REQ-R-02 | DFF ≤ 5184 | WP-07 | nextpnr | TBD | ⬜ |
-| REQ-R-03 | AES ≤ 2200 LUT4 | WP-02, WP-04 | tổng hợp riêng | TBD | ⬜ |
-| REQ-R-04 | SHA ≤ 1800 LUT4 | WP-02, WP-03 | tổng hợp riêng | TBD | ⬜ |
+| REQ-R-03 | AES ≤ 2400 LUT4 (ADR-0007) | WP-02, WP-04 | tổng hợp riêng | S-Box đo 81 ×16 = 1296 | 🚧 |
+| REQ-R-04 | SHA ≤ 2000 LUT4 (ADR-0007) | WP-02, WP-03 | tổng hợp riêng | sched+k+compress đo 1420 | 🚧 |
 
 ### 3.7 Kiểm chứng & phi chức năng
 
@@ -128,11 +128,11 @@ phải hoặc gắn REQ, hoặc xóa.
 
 | Chỉ số | Định nghĩa | Mục tiêu | Hiện tại |
 |---|---|---|---|
-| Traceability coverage | % REQ có đủ module + test + bằng chứng | 100% | 0% (khung) |
+| Traceability coverage | % REQ có đủ module + test + bằng chứng | 100% | 4/39 = 10% |
 | Orphan rate (REQ) | % REQ không có code/test | 0% | 0% |
 | Orphan rate (module) | % module không có REQ | 0% | 0% |
 | Freshness | % tài liệu khớp commit hiện tại | 100% | 100% |
-| Decision coverage | % thay đổi kiến trúc có ADR | 100% | 100% (6/6) |
+| Decision coverage | % thay đổi kiến trúc có ADR | 100% | 100% (7/7) |
 | Review evidence | % artifact có mục trong human correction log | 100% | **0%** ⚠️ |
 
 > Ô cuối đang là 0% một cách trung thực: toàn bộ artifact hiện tại là bản nháp do AI soạn,

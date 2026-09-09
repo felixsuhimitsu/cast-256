@@ -1,0 +1,28 @@
+// constraints/uart_echo.cst
+// Ràng buộc chân cho bitstream thăm dò WP-01 (rtl/probe/uart_echo_top.v).
+// Thiết bị: Sipeed Tang Nano 9K — GW1NR-LV9QN88PC6/I5
+//
+// GÁN CHÂN ĐÃ ĐƯỢC KIỂM CHỨNG TRÊN PHẦN CỨNG (WP-01, 2026-09-09):
+//   chân 18 = FPGA THU (rx)   ·   chân 17 = FPGA PHÁT (tx)
+// Đây là NGƯỢC với constraints/tangnano9k.cst của thiết kế trước (rx=17, tx=18).
+// Bản với rx=17/tx=18 đã được nạp thật và cho 0/512 byte vọng về; bản ngược lại
+// cho 4096/4096. Đừng đảo lại nếu chưa nạp và đo lại.
+//
+// LƯU Ý MỨC ĐIỆN ÁP: mọi chân ở đây đều LVCMOS33. Đèn LED trên board dùng
+// chung IO bank với rst_n (chân 3, LVCMOS33). Nếu khai LED là LVCMOS18 thì
+// gowin_pack DỪNG với lỗi xung đột IO_TYPE và KHÔNG sinh ra bitstream nào cả.
+
+IO_LOC "clk_27m" 52;
+IO_PORT "clk_27m" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+
+IO_LOC "rst_n" 3;
+IO_PORT "rst_n" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+
+IO_LOC "uart_rx_pin" 18;
+IO_PORT "uart_rx_pin" IO_TYPE=LVCMOS33 PULL_MODE=UP;   // FPGA thu <- debugger phat
+
+IO_LOC "uart_tx_pin" 17;
+IO_PORT "uart_tx_pin" IO_TYPE=LVCMOS33 DRIVE=8;       // FPGA phat -> debugger thu
+
+IO_LOC "led_activity" 10;
+IO_PORT "led_activity" IO_TYPE=LVCMOS33 DRIVE=8;

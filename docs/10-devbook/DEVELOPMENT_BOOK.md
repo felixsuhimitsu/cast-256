@@ -49,13 +49,71 @@ Vì vậy đã dựng vi phạm cố ý để kiểm chính cái gate:
 
 Gate được chứng minh là bắt được vi phạm thật, không phải luôn xanh.
 
-**Còn nợ:** `constraints/tangnano9k.cst` trên nhánh này vẫn để 3 LED ở `LVCMOS18` trong
-khi `rst_n` (chân 3) là `LVCMOS33`. Hai mức điện áp trong cùng IO bank làm `gowin_pack`
-dừng và **không sinh ra bitstream nào cả**. Đây là thay đổi thuộc **vùng ĐỎ** (mức điện
-áp chân), sẽ xử lý ở WP-01 và phải được người xác nhận trước khi commit.
+**Còn nợ (đã xử lý một phần ở WP-01):** `constraints/tangnano9k.cst` kế thừa có hai vấn
+đề — 3 LED khai `LVCMOS18` trong khi `rst_n` cùng IO bank là `LVCMOS33` (làm `gowin_pack`
+dừng, không sinh bitstream), và gán chân UART bị ngược. `constraints/uart_echo.cst` của
+WP-01 đã dùng gán chân đúng và LVCMOS33 toàn bộ, đã kiểm chứng trên board. File
+`tangnano9k.cst` sẽ được viết lại ở WP-07 dựa trên bản đã kiểm chứng này.
 
-### WP-01 — Đường ống UART trần · TT: ⬜
-*(chưa có mục)*
+### WP-01 — Đường ống UART trần · TT: ✅ Done (2026-09-09) — **GATE CỨNG ĐÃ QUA**
+
+**Đã làm:** `baud_gen.v`, `uart_rx.v`, `uart_tx.v` + bitstream thăm dò
+`rtl/probe/uart_echo_top.v` (FIFO 16 byte). Tổng hợp 331 LUT4, F_max 140 MHz.
+
+#### Lỗi 1 — testbench bắt được lỗi thật trong `uart_rx`
+
+TC-301 (biểu quyết 3 điểm chống nhiễu) FAIL 6/8: nhiễu 1 chu kỳ trên các bit có
+giá trị 0 vẫn lọt qua ở bit 3 và bit 5.
+
+Nguyên nhân: `vote` được dùng ở **đúng chu kỳ** mà `samples[2]` đang được gán.
+Vì gán là nonblocking, `vote` đọc giá trị **cũ** của `samples[2]` — vốn là `1`
+từ lần reset. Nên với bit giá trị 0, phép biểu quyết thành `majority(s0, s1, 1)`:
+chỉ cần một trong hai mẫu còn lại bị nhiễu là kết quả lật.
+
+Sửa: thêm `SDEC = S2 + 1`, quyết định trễ một chu kỳ sau mẫu cuối. Dự phòng bắt
+sườn start còn 234 − 126 = **108 chu kỳ**, vẫn dư xa so với 3.75 chu kỳ của
+thiết kế cũ. TC-300..302 sau đó PASS 10/10.
+
+Đây đúng loại lỗi mà chỉ testbench có kịch bản nhiễu mới bắt được — một bộ test
+chỉ gửi byte sạch sẽ PASS hoàn toàn.
+
+#### Lỗi 2 — GÁN CHÂN UART CỦA THIẾT KẾ TRƯỚC BỊ NGƯỢC
+
+Nạp lần đầu với `rx=17, tx=18` (chép từ `constraints/tangnano9k.cst` của thiết
+kế cũ): **0/512 byte vọng về**, và ca đối chứng có nghỉ 1 ms cũng 0/64.
+
+Chính ca đối chứng là thứ chỉ đúng hướng: nếu là mất đồng bộ tích lũy thì ca có
+nghỉ phải chạy được. Cả hai đều bằng 0 nghĩa là **không có đường về**, tức là
+vấn đề vật lý chứ không phải logic.
+
+Đảo chân rồi nạp lại:
+
+| Gán chân | 512 byte liên tục | 1024 | 4096 |
+|---|---|---|---|
+| rx=17, tx=18 (như thiết kế cũ) | **0/512** | — | — |
+| **rx=18, tx=17** | **512/512** | **1024/1024** | **4096/4096** |
+
+Kết luận: trên Tang Nano 9K, **chân 18 là FPGA THU, chân 17 là FPGA PHÁT**.
+`constraints/tangnano9k.cst` kế thừa từ thiết kế trước ghi ngược, và điều này
+phải sửa trước khi dùng ở WP-07.
+
+> Ghi chú về nhận định trước đó: trong phiên làm việc trước, giả thuyết "đảo chân
+> UART" từng bị coi là đã bác bỏ. Số đo ở đây cho thấy kết luận đó sai. Bằng
+> chứng là 4096/4096 với gán chân đảo so với 0/512 với gán chân cũ, trên cùng
+> một board, cùng một bitstream logic.
+
+#### Kết quả gate
+
+| Bài | Kết quả |
+|---|---|
+| TC-600a: 512 byte liên tục, không nghỉ | **0 byte mất** ✅ |
+| TC-600b: nội dung đúng từng byte | ✅ |
+| Bổ sung: 1024 byte | 0 mất ✅ |
+| Bổ sung: 4096 byte | 0 mất ✅ |
+| Thông lượng đo được | 4096 B trong 355.6 ms ≈ 11.5 kB/s (đạt trần lý thuyết) |
+
+REQ-I-05 **đạt**, chứng minh trên phần cứng thật (REQ-V-03). Log gốc:
+`evidence/hw/20260909-2230-TC600-uartloop-4096.log`.
 
 ### WP-02 — Thăm dò diện tích · TT: ✅ Done (2026-09-09)
 
@@ -148,9 +206,11 @@ Ngân sách đã điều chỉnh theo ADR-0007 sau đợt đo này.
 
 ### 3.3 Hiệu năng phần cứng
 
-| Ngày | Chế độ | Số khung | Mất | Thông lượng | Độ trễ avg | Log |
+| Ngày | Chế độ | Số byte/khung | Mất | Thông lượng | Ghi chú | Log |
 |---|---|---|---|---|---|---|
-| — | — | — | — | — | — | — |
+| 2026-09-09 | uartloop (TC-600) | 512 byte | **0** | — | gate WP-01 | `evidence/hw/` |
+| 2026-09-09 | uartloop | 1024 byte | **0** | 11.5 kB/s | — | `evidence/hw/` |
+| 2026-09-09 | uartloop | 4096 byte | **0** | 11.5 kB/s | 355.6 ms | `evidence/hw/20260909-2230-TC600-uartloop-4096.log` |
 
 ---
 
@@ -179,6 +239,9 @@ Phần này quý hơn phần "đã chạy". Ghi lại để không ai (kể cả
 |---|---|---|---|
 | 1 | Đo "khung rỗng" của IP để thăm dò diện tích (theo WBS ban đầu) | Bỏ, không làm | yosys tối ưu mất logic rỗng → số vô nghĩa. Đổi sang đo hai khối tốn nhất và viết thật |
 | 2 | Gán `a..h` ở cả ba nhánh init/step/finalize trong `sha256_compress` | 1132 LUT4, trong đó 844 LUT3 | Mỗi bit trong 256 bit cần mux 3 chiều. Bỏ nhánh `finalize` → 892 LUT4 |
+| 3 | Dùng `vote` ngay tại chu kỳ lấy mẫu thứ ba trong `uart_rx` | TC-301 FAIL 6/8 | Gán nonblocking: `samples[2]` chưa cập nhật, vote đọc giá trị cũ. Phải quyết định ở `S2+1` |
+| 4 | Chép gán chân UART từ `constraints/tangnano9k.cst` cũ (rx=17, tx=18) | 0/512 byte vọng về | Ngược chân. Đúng là **rx=18, tx=17** — đã đo trên board |
+| 5 | Tin rằng giả thuyết "đảo chân UART" đã bị bác bỏ ở phiên trước | Sai | Kết luận cũ không có số đo đi kèm. Bài học: một giả thuyết chỉ được coi là bác bỏ khi có phép đo, không phải khi có lập luận |
 
 ---
 
