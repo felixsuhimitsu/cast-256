@@ -16,8 +16,43 @@ Một điều sai đã thử mà không được ghi lại sẽ bị thử lại
 
 ## 2. Nhật ký theo work package
 
-### WP-00 — Khung dự án · TT: ⬜ chưa bắt đầu
-*(chưa có mục)*
+### WP-00 — Khung dự án · TT: ✅ Done (2026-09-09)
+
+**Đã làm:**
+- Xóa `rtl/` và `sim/` cũ (giữ nguyên trong lịch sử git trên nhánh `main`), dựng cây mới
+  theo `MODULE_MAP.md` §1: `config/`, `ip/aes256/`, `ip/sha256/`, `protocol/`, `fabric/`, `io/`.
+- `sim/lib/tb_util.vh`: macro `CHECK_EQ` / `CHECK_TRUE` / `CHECK_LE` / `TB_END` / `TB_TIMEOUT`.
+  `TB_END` dùng `$fatal(1,...)` để iverilog trả **mã thoát khác 0** khi FAIL — điều kiện
+  của REQ-V-01. Nếu chỉ `$finish` thì testbench FAIL vẫn trả 0 và CI sẽ báo xanh sai.
+- `sim/lib/csi_checker.v`: module kiểm tự động INV-1..6 và quy tắc bắt tay H2, H5 của hợp
+  đồng CSI. Instantiate song song với IP, đếm vi phạm ra cổng `viol_count`.
+- `scripts/check_headers.sh` (REQ-N-02), `scripts/check_layering.sh` (MODULE_MAP §4).
+- `Makefile`: target `lint / sim-* / synth-aes / synth-sha / synth / flash / test / bench`.
+
+**Ba chỗ đưa bài học cũ thẳng vào công cụ, không để trong đầu:**
+1. `synth` dùng `2>&1 | tee` cho nextpnr — công cụ ghi toàn bộ ra stderr, thiếu `2>&1`
+   thì log luôn 0 byte (§4.1 mục 8).
+2. `YOSYS_FLAGS` cố định `-nowidelut` kèm bình luận giải thích, để không ai bỏ đi lần nữa
+   (§4.1 mục 3).
+3. Target `test`/`bench` gọi `/usr/bin/python3` tường minh, không dùng `python3` (§4.1 mục 9).
+   `PORT` mặc định `/dev/ttyUSB1`, có ghi chú `ttyUSB0` là JTAG (§4.1 mục 5).
+
+**Tự kiểm gate (quan trọng):** `make lint` chạy sạch trên cây rỗng — nhưng "sạch" khi
+không có gì để kiểm là vô nghĩa, đúng kiểu Done giả số 1 trong `DEFINITION_OF_DONE.md` §4.
+Vì vậy đã dựng vi phạm cố ý để kiểm chính cái gate:
+
+| Vi phạm dựng lên | Gate | Kết quả |
+|---|---|---|
+| File trong `ip/aes256/` không có header | `check_headers.sh` | FAIL, exit=1 ✅ |
+| Module trong `ip/` instantiate module của `io/` | `check_layering.sh` | FAIL, exit=1 ✅ |
+| (sau khi dọn) | cả hai | PASS, exit=0 ✅ |
+
+Gate được chứng minh là bắt được vi phạm thật, không phải luôn xanh.
+
+**Còn nợ:** `constraints/tangnano9k.cst` trên nhánh này vẫn để 3 LED ở `LVCMOS18` trong
+khi `rst_n` (chân 3) là `LVCMOS33`. Hai mức điện áp trong cùng IO bank làm `gowin_pack`
+dừng và **không sinh ra bitstream nào cả**. Đây là thay đổi thuộc **vùng ĐỎ** (mức điện
+áp chân), sẽ xử lý ở WP-01 và phải được người xác nhận trước khi commit.
 
 ### WP-01 — Đường ống UART trần · TT: ⬜
 *(chưa có mục)*
