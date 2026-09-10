@@ -26,7 +26,8 @@
 // LẤY MẪU (REQ-I-04)
 // Ba mẫu tại chu kỳ 109 / 117 / 125 trong bit (giữa bit = 117), cách nhau ±8
 // chu kỳ ≈ ±0.30 µs. Lấy đa số 2/3. Cách này loại được xung nhiễu đơn lẻ mà
-// vẫn nằm gọn trong vùng ổn định của bit.
+// vẫn nằm gọn trong vùng ổn định của bit. Khoảng cách mẫu tỉ lệ theo DIV nên
+// module dùng lại được ở tốc độ baud khác (xem localparam SPREAD).
 //=============================================================================
 
 `timescale 1ns / 1ps
@@ -44,14 +45,25 @@ module uart_rx #(
     output reg        rx_frame_err  // xung 1 chu kỳ: bit stop sai
 );
 
-    localparam integer DIV  = CLK_HZ / BAUD;   // 234
+    localparam integer DIV  = CLK_HZ / BAUD;   // 234 ở 27 MHz / 115200
     localparam integer MID  = DIV / 2;         // 117
-    localparam integer S0   = MID - 8;         // 109
+
+    // Khoảng cách giữa ba điểm lấy mẫu. PHẢI tỉ lệ theo DIV, không được là
+    // hằng số: với DIV nhỏ (mô phỏng dùng baud cao cho nhanh) thì ±8 chu kỳ
+    // vượt ra ngoài một bit và điểm quyết định SDEC không bao giờ tới được —
+    // FSM kẹt vĩnh viễn ở ST_START. Đã gặp thật ở tb_top với DIV = 16.
+    //
+    // Với DIV >= 64 (mọi cấu hình thật của dự án) giá trị vẫn là 8, nên kết
+    // quả đã kiểm chứng trên phần cứng ở WP-01 KHÔNG bị thay đổi.
+    localparam integer SPREAD = (DIV >= 64) ? 8 : ((DIV >= 16) ? (DIV / 8) : 1);
+
+    localparam integer S0   = MID - SPREAD;    // 109
     localparam integer S1   = MID;             // 117
-    localparam integer S2   = MID + 8;         // 125
+    localparam integer S2   = MID + SPREAD;    // 125
     // Quyết định TRỄ MỘT CHU KỲ sau mẫu cuối. Nếu dùng `vote` ngay tại S2 thì
     // samples[2] mới đang được gán (nonblocking) và vote sẽ dùng giá trị CŨ —
     // lỗi này đã bị TC-301 bắt được: nhiễu trên bit giá trị 0 lọt qua ở 2/8 bit.
+    // SDEC phải < DIV-1, nếu không FSM không bao giờ rời trạng thái hiện tại.
     localparam integer SDEC = S2 + 1;          // 126
 
     localparam [1:0] ST_IDLE  = 2'd0,

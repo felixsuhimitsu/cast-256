@@ -331,8 +331,80 @@ nhìn thấy được trên board thật, chứ không chỉ thấy trong testbe
 Ghi lại vì cả hai đều là kiểu "test sai chứ không phải thiết kế sai", giống TC-107 ở WP-04.
 Khi một vài phép kiểm lẻ fail giữa một loạt phép kiểm pass, nghi ngờ test trước.
 
-### WP-06 — Lớp giao thức · TT: ⬜
-*(chưa có mục)*
+### WP-06 — Lớp giao thức · TT: ✅ Done (2026-09-10)
+
+**Đã làm:** `frame_rx.v`, `frame_buffer.v`, `digest_check.v`, `session_fsm.v`, `frame_tx.v`,
+`led_status.v`, `config/keys.vh`, `top_secure_link.v`. Testbench `tb_top.v` **PASS 22/22**.
+Toàn bộ 6 testbench của dự án đều PASS.
+
+**Testbench lái qua đúng hai chân UART**, không thò tay vào tín hiệu bên trong, nên nó kiểm
+được cả đường đi thật của dữ liệu.
+
+**TC-500 là phép kiểm DƯƠNG, và nó suýt không có.** Bản testbench đầu tiên chỉ gồm các phép
+kiểm "không có phản hồi" — digest sai, LEN sai, khung cắt, bit lật. Toàn bộ file đó sẽ PASS
+hoàn hảo trên một thiết kế **chết hoàn toàn**. Đúng kiểu Done giả số 1 trong
+`DEFINITION_OF_DONE.md` §4, và tôi tự viết ra nó.
+
+Đã sửa bằng cách sinh giá trị kỳ vọng từ hiện thực tham chiếu Python với đúng khóa trong
+`config/keys.vh`:
+
+| Đại lượng | Giá trị |
+|---|---|
+| payload (16 byte) | `3c21066b48ad92f7d4391e036045aa8f` |
+| DIG_IN = SHA-256(LEN‖IV‖payload) | `8a5b63d9…fd3000d0` — gửi lên |
+| CT = AES-256-CTR(payload) | `8b9e3c36bc941b2a43c9e4948b8b85c5` — mong đợi |
+| DIG_OUT = SHA-256(LEN‖IV‖CT) | `13c6f553…ea97b444` — mong đợi |
+
+Nhờ vậy TC-500 kiểm trọn vẹn: mở khung → SHA → so digest → AES → SHA → đóng khung → phát.
+
+#### Lỗi 1 — bắt tay chỉ kiểm `ready`, không kiểm `valid`
+
+`if (m_sin_ready)` thay vì `if (m_sin_valid && m_sin_ready)`. Vì `m_sin_valid` là thanh ghi
+nên ở chu kỳ đầu của mỗi trạng thái nạp nó vẫn bằng 0, và bộ đếm byte nhảy lên trong khi
+byte chưa hề được gửi.
+
+Triệu chứng rất đánh lừa: bước nạp khóa AES lúc khởi động không bao giờ kết thúc → `engine_busy`
+kẹt ở 1 vĩnh viễn → byte đến bị chặn bởi `!engine_busy` → **toàn hệ thống câm lặng**. Nhìn từ
+ngoài giống hệt "khung nào cũng bị loại", tức là giống hệt hành vi đúng khi digest sai.
+
+Nếu testbench chỉ có các phép kiểm âm thì lỗi này sẽ **không bao giờ bị phát hiện**.
+
+#### Lỗi 2 — điểm lấy mẫu UART cố định ±8 chu kỳ
+
+`tb_top` dùng baud cao cho mô phỏng nhanh (DIV = 16). Với DIV nhỏ, ba điểm lấy mẫu 109/117/125
+và điểm quyết định 126 nằm ngoài một bit (chỉ dài 16 chu kỳ) → FSM kẹt vĩnh viễn ở `ST_START`.
+
+Sửa: `SPREAD` tỉ lệ theo DIV. Với DIV ≥ 64 giá trị vẫn là 8, nên **kết quả đã kiểm chứng
+trên phần cứng ở WP-01 không bị thay đổi** — đã chạy lại `tb_uart` ở 115200 để xác nhận.
+
+Đây là lỗi thật của RTL chứ không phải giới hạn của testbench: một module nhận tham số
+`CLK_HZ`/`BAUD` mà chỉ chạy đúng ở một giá trị thì tham số đó là giả.
+
+#### Lỗi 3 — độ trễ đọc bộ nhớ, lần thứ BA trong dự án
+
+Địa chỉ đọc bộ đệm là thanh ghi, cộng với bộ nhớ đọc trễ một chu kỳ, thành hai chu kỳ — nên
+trạng thái chờ một chu kỳ là không đủ và mỗi byte dùng dữ liệu của byte **trước đó**. SHA
+tính ra digest sai, khung bị loại.
+
+Hai lần trước cùng kiểu lỗi này ở bộ nhớ khóa vòng AES (WP-04). Cách chữa gốc, đã áp dụng cho
+cả `session_fsm` và `frame_tx`: **để địa chỉ đọc là tổ hợp**, khi đó một trạng thái chờ là đủ
+và đúng. Ghi vào §4.2 như một mẫu lỗi lặp lại, không phải ba sự cố rời rạc.
+
+#### Lỗi 4 — watchdog 2²⁴ chu kỳ khiến REQ-F-24 không kiểm được
+
+Khung bị cắt làm `frame_rx` khóa suốt 0,62 s thời gian mô phỏng — dài tới mức mọi testbench
+thực tế đều bỏ qua, và REQ-F-24 sẽ không bao giờ *thực sự* được kiểm. Một requirement không
+kiểm được thì coi như không có.
+
+Sửa: tham số hóa `WDOG_BITS` (24 cho phần cứng, 12 trong mô phỏng). TC-506 giờ chạy đủ **hai
+pha của REQ-V-04**: pha A khung cắt → im lặng, pha B khung hợp lệ sau đó → chạy đúng.
+
+#### Ba lỗi ở testbench, không phải RTL
+
+1. Đếm sai kích thước khung: 2+2+16+16+32 = **68**, tôi ghi 52. Thiết kế đúng ngay từ đầu —
+   tất cả các phép kiểm nội dung (preamble, LEN, IV, bản mã, digest) đều đã PASS.
+2. `send_frame` tự đặt lại bộ đếm byte nhận, làm TC-508 chỉ đếm khung thứ hai.
+3. Kiểm "không phát thừa" bằng cách đọc ô nhớ chưa khởi tạo, thay vì đo lại sau một khoảng lặng.
 
 ### WP-07 — Tích hợp phần cứng · TT: ⬜
 *(chưa có mục)*
@@ -425,6 +497,11 @@ Phần này quý hơn phần "đã chạy". Ghi lại để không ai (kể cả
 | 10 | Nối cổng `key` của keysched bằng biểu thức tổ hợp `{key_r, sin_data}` | `rk[0]`, `rk[1]` lệch một byte; `rk[2..14]` đúng | Cổng đó đổi giá trị ở chu kỳ sau. Phải dùng bản đã chốt bên trong (`w`) |
 | 11 | Đưa mảng khóa vòng 15×128 vào BSRAM Gowin | Không ánh xạ được | Cổng BSRAM Gowin rộng tối đa 32 bit; yosys rơi về logic phân tán |
 | 12 | Bỏ tầng thanh ghi cổng ra key schedule để cứu LUT | DFF −133 nhưng **LUT4 +2** | Thanh ghi ánh xạ thẳng vào ô DFF, không tiêu LUT nào để bỏ đi |
+| 13 | Điều kiện bắt tay chỉ kiểm `ready` | Nạp khóa AES không bao giờ xong, toàn hệ câm lặng | `valid` là thanh ghi nên chu kỳ đầu vẫn bằng 0. Phải kiểm `valid && ready` |
+| 14 | Điểm lấy mẫu UART cố định ±8 chu kỳ | FSM kẹt khi DIV nhỏ | Khoảng cách mẫu phải tỉ lệ theo DIV, nếu không tham số `BAUD` chỉ là trang trí |
+| 15 | **Địa chỉ đọc bộ nhớ để trong thanh ghi** (lần 3) | Dữ liệu trễ một byte | Bộ nhớ đã trễ 1 chu kỳ; địa chỉ qua thanh ghi thành 2. **Để địa chỉ là tổ hợp** |
+| 16 | Watchdog 2²⁴ chu kỳ cố định | REQ-F-24 không testbench nào kiểm nổi | Tham số hóa để mô phỏng dùng giá trị nhỏ |
+| 17 | Viết testbench toàn phép kiểm ÂM ("không có phản hồi") | Sẽ PASS trên thiết kế chết | Phải có ít nhất một phép kiểm DƯƠNG. Chính tôi viết ra rồi tự bắt được |
 | 4 | Chép gán chân UART từ `constraints/tangnano9k.cst` cũ (rx=17, tx=18) | 0/512 byte vọng về | Ngược chân. Đúng là **rx=18, tx=17** — đã đo trên board |
 | 5 | Tin rằng giả thuyết "đảo chân UART" đã bị bác bỏ ở phiên trước | Sai | Kết luận cũ không có số đo đi kèm. Bài học: một giả thuyết chỉ được coi là bác bỏ khi có phép đo, không phải khi có lập luận |
 

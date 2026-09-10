@@ -53,11 +53,11 @@ Bảng này là **gate cuối** của dự án (WP-10). Điều kiện đóng:
 
 | REQ | Mô tả ngắn | WP | Module | Test | Bằng chứng | TT |
 |---|---|---|---|---|---|---|
-| REQ-F-20 | Đồng bộ bằng quét preamble | WP-06 | MOD-PROTO-RX, MOD-PROTO-TX | TC-500, TC-501, TC-508, TC-605 | TBD | ⬜ |
-| REQ-F-21 | LEN trong [1,512] | WP-06 | MOD-PROTO-RX, MOD-PROTO-BUF | TC-504, TC-505 | TBD | ⬜ |
-| REQ-F-22 | Chỉ phát khi digest khớp | WP-06 | MOD-PROTO-DGST, MOD-PROTO-FSM | TC-502, TC-503, TC-603 | TBD | ⬜ |
-| REQ-F-23 | So sánh digest hằng thời | WP-06 | MOD-PROTO-DGST | TC-507 | TBD | ⬜ |
-| REQ-F-24 | Watchdog 2²⁴ chu kỳ | WP-06 | MOD-PROTO-FSM | TC-506, TC-604 | TBD | ⬜ |
+| REQ-F-20 | Đồng bộ bằng quét preamble | WP-06 | MOD-PROTO-RX, MOD-PROTO-TX | TC-500, TC-501, TC-508 | `make sim-top` — khung khứ hồi đúng bản mã và digest; 32 byte rác trước preamble vẫn nhận đúng | ✅ (còn TC-605 trên board) |
+| REQ-F-21 | LEN trong [1,512] | WP-06 | MOD-PROTO-RX, MOD-PROTO-BUF | TC-504, TC-505 | LEN=0 và LEN=1024 đều bị loại | ✅ |
+| REQ-F-22 | Chỉ phát khi digest khớp | WP-06 | MOD-PROTO-DGST, MOD-PROTO-FSM | TC-502, TC-503 | lật 1 bit payload và 1 bit digest → im lặng; khung hợp lệ sau đó vẫn chạy | ✅ (còn TC-603 trên board) |
+| REQ-F-23 | So sánh digest hằng thời | WP-06 | MOD-PROTO-DGST | đọc RTL | XOR 256 bit + OR-reduce, 1 chu kỳ, không nhánh phụ thuộc dữ liệu | ✅ |
+| REQ-F-24 | Watchdog 2²⁴ chu kỳ | WP-06 | MOD-PROTO-RX | TC-506 | khung cắt → im lặng, **và** khung hợp lệ sau đó chạy đúng (đủ hai pha REQ-V-04) | ✅ (còn TC-604 trên board) |
 | REQ-F-25 | AES và SHA loại trừ tương hỗ | WP-05 | MOD-FAB-ARB, MOD-FAB-MUX | TC-400, TC-401 | assertion mọi chu kỳ: 0 lần hai IP cùng bận; grant luôn one-hot | ✅ |
 | REQ-F-30 | LED0 đang nhận | WP-07 | MOD-IO-LED | TC-606 | TBD | ⬜ |
 | REQ-F-31 | LED1 engine bận | WP-07 | MOD-IO-LED | TC-606 | TBD | ⬜ |
@@ -134,7 +134,7 @@ phải hoặc gắn REQ, hoặc xóa.
 
 | Chỉ số | Định nghĩa | Mục tiêu | Hiện tại |
 |---|---|---|---|
-| Traceability coverage | % REQ có đủ module + test + bằng chứng | 100% | 21/39 = 54% |
+| Traceability coverage | % REQ có đủ module + test + bằng chứng | 100% | 26/39 = 67% |
 | Orphan rate (REQ) | % REQ không có code/test | 0% | 0% |
 | Orphan rate (module) | % module không có REQ | 0% | 0% |
 | Freshness | % tài liệu khớp commit hiện tại | 100% | 100% |

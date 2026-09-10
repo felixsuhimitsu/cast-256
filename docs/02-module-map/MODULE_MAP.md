@@ -64,7 +64,7 @@ rtl/
 | MOD-PROTO-RX | `protocol/frame_rx.v` | REQ-F-20, REQ-F-21 | 300 |
 | MOD-PROTO-TX | `protocol/frame_tx.v` | REQ-F-20 | 220 |
 | MOD-PROTO-DGST | `protocol/digest_check.v` | REQ-F-22, REQ-F-23 | 120 |
-| MOD-PROTO-BUF | `protocol/frame_buffer.v` | REQ-F-21 | 60 + 4 BSRAM |
+| MOD-PROTO-BUF | `protocol/frame_buffer.v` | REQ-F-21 | **đo: 1 BSRAM** (`DPX9B`), 0 LUT4 |
 | MOD-PROTO-FSM | `protocol/session_fsm.v` | REQ-F-24, REQ-F-22 | 380 |
 | MOD-FAB-ARB | `fabric/ip_arbiter.v` | REQ-F-25 | **đo: 7** |
 | MOD-FAB-MUX | `fabric/stream_mux.v` | REQ-I-01 | **đo: 279** |
@@ -73,7 +73,7 @@ rtl/
 | MOD-IO-UTX | `io/uart_tx.v` | REQ-I-03 | 80 |
 | MOD-IO-LED | `io/led_status.v` | REQ-F-30..32 | 60 |
 | MOD-TOP | `top_secure_link.v` | REQ-N-01 | 80 |
-| | | **Tổng dự phóng** | **≈ 5880 / 8640 (68%)** — trần REQ-R-01 là 7776 |
+| | | **TỔNG ĐO ĐƯỢC (yosys, trước P&R)** | **5789 LUT4 + 32 RAM16SDP4, 3696 DFF, 808 ALU, 1 BSRAM** |
 
 > **Cập nhật WP-02 (2026-09-09).** Các dòng in đậm là **số đo thật** từ `synth_gowin`,
 > phần còn lại vẫn là ước lượng và phải được đo khi WP tương ứng xong. Ngân sách từng IP

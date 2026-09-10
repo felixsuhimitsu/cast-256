@@ -29,7 +29,7 @@ SDC        := constraints/timing.sdc
 PORT       ?= /dev/ttyUSB1
 SYSPY      := /usr/bin/python3
 
-IVFLAGS    := -g2005 -Wall -Wno-timescale -I sim/lib
+IVFLAGS    := -g2005 -Wall -Wno-timescale -I sim/lib -I rtl
 RTL_ALL    := $(shell find rtl -name '*.v' 2>/dev/null)
 RTL_IP     := $(shell find rtl/ip -name '*.v' 2>/dev/null)
 RTL_AES    := $(shell find rtl/ip/aes256 -name '*.v' 2>/dev/null)
@@ -38,7 +38,7 @@ RTL_IO     := $(shell find rtl/io -name '*.v' 2>/dev/null)
 RTL_FAB    := $(shell find rtl/fabric -name '*.v' 2>/dev/null)
 RTL_PROTO  := $(shell find rtl/protocol -name '*.v' 2>/dev/null)
 
-.PHONY: help lint sim sim-aes sim-sha sim-uart sim-fabric sim-top \
+.PHONY: help lint sim sim-sbox sim-aes sim-sha sim-uart sim-fabric sim-top \
         synth synth-aes synth-sha flash test bench clean dirs
 
 #-----------------------------------------------------------------------------
@@ -52,6 +52,7 @@ help:
 	@echo "    make lint          Cú pháp + latch + header REQ-ID + phụ thuộc tầng"
 	@echo ""
 	@echo "  MÔ PHỎNG (L1/L2 — không thay được test phần cứng, xem REQ-V-03)"
+	@echo "    make sim-sbox      S-Box, doi chieu du 256 gia tri"
 	@echo "    make sim-aes       IP AES-256, vector FIPS 197 + SP 800-38A"
 	@echo "    make sim-sha       IP SHA-256, vector FIPS 180-4"
 	@echo "    make sim-uart      Lớp vật lý UART"
@@ -110,14 +111,17 @@ endef
 sim-sha: dirs
 	$(call run_sim,tb_sha256_ip,sim/unit/tb_sha256_ip.v,$(RTL_SHA) sim/lib/csi_checker.v)
 
-sim-aes: dirs
+sim-sbox: dirs
+	$(call run_sim,tb_sbox,sim/unit/tb_sbox.v,rtl/ip/aes256/aes256_sbox.v)
+
+sim-aes: sim-sbox
 	$(call run_sim,tb_aes256_ip,sim/unit/tb_aes256_ip.v,$(RTL_AES) sim/lib/csi_checker.v)
 
 sim-uart: dirs
 	$(call run_sim,tb_uart,sim/unit/tb_uart.v,$(RTL_IO))
 
 sim-fabric: dirs
-	$(call run_sim,tb_fabric,sim/integ/tb_fabric.v,$(RTL_FAB) sim/lib/csi_checker.v)
+	$(call run_sim,tb_fabric,sim/integ/tb_fabric.v,$(RTL_FAB) sim/lib/csi_stub_ip.v)
 
 sim-top: dirs
 	$(call run_sim,tb_top,sim/integ/tb_top.v,$(RTL_ALL) sim/lib/csi_checker.v)
