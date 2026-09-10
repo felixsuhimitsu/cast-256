@@ -129,7 +129,15 @@ module session_fsm #(
     reg  [5:0]  kidx;
     reg  [255:0] digest_calc;
 
-    wire [AW+1:0] feed_total = {6'd0, len[AW-1:0]} + 18;
+    // CẨN THẬN VỚI ĐỘ RỘNG: LEN tối đa là 512 = 10'h200, tức bit thứ 9.
+    // Bản đầu viết `len[AW-1:0]` (AW = 9) nên cắt mất đúng bit đó: với LEN=512
+    // thì len[8:0] = 0 và feed_total = 18 thay vì 530. Hệ quả: SHA chỉ băm phần
+    // đầu khung, digest sai, khung 512 byte LUÔN bị loại — trong khi 128 byte
+    // chạy hoàn hảo. Lỗi chỉ lộ ra ở đúng giá trị biên.
+    wire [AW+1:0] feed_total = len[AW+1:0] + 18;
+
+    // Chỉ số byte payload tương ứng với fidx (chỉ có nghĩa khi fidx >= 18)
+    wire [AW+1:0] fidx_pay = fidx - 18;
 
     wire [255:0] key_r = aes_key;
 
@@ -150,7 +158,7 @@ module session_fsm #(
         if ((state == ST_AE_ADDR) || (state == ST_AE_DATA))
             raddr_c = aes_in[AW-1:0];
         else if (fidx >= 18)
-            raddr_c = fidx[AW-1:0] - 18;
+            raddr_c = fidx_pay[AW-1:0];
         else
             raddr_c = {AW{1'b0}};
     end

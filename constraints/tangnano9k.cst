@@ -1,23 +1,48 @@
-// Tang Nano 9K Physical Constraints File
-// Target Device: GW1NR-LV9QN88PC6/I5
+// constraints/tangnano9k.cst
+// Ràng buộc chân cho top_secure_link — Sipeed Tang Nano 9K, GW1NR-LV9QN88PC6/I5
+// Đội Hủ Tiếu · 2026-09-10
+//
+//=============================================================================
+// HAI ĐIỀU ĐÃ ĐƯỢC KIỂM CHỨNG TRÊN PHẦN CỨNG THẬT — ĐỪNG ĐỔI NẾU CHƯA ĐO LẠI
+//=============================================================================
+//
+// 1. GÁN CHÂN UART (WP-01, 2026-09-09)
+//      chân 18 = FPGA THU (rx)      chân 17 = FPGA PHÁT (tx)
+//    Bản kế thừa từ thiết kế trước ghi NGƯỢC (rx=17, tx=18). Đã nạp cả hai lên
+//    board và đo:
+//      rx=17, tx=18  ->     0/512 byte vọng về
+//      rx=18, tx=17  ->  4096/4096 byte, 0 mất
+//    Xem docs/10-devbook/DEVELOPMENT_BOOK.md §WP-01.
+//
+// 2. MỨC ĐIỆN ÁP
+//    Ba đèn LED dùng chung IO bank với rst_n (chân 3, LVCMOS33). Khai LED là
+//    LVCMOS18 làm gowin_pack DỪNG với lỗi xung đột IO_TYPE và KHÔNG sinh ra
+//    bitstream nào cả. Vì vậy toàn bộ chân ở đây đều LVCMOS33.
+//
+// Thay đổi file này thuộc VÙNG ĐỎ trong docs/05-risk/RISK_DELEGATION.md §3:
+// sai mức điện áp có thể làm hỏng phần cứng.
+//=============================================================================
 
-IO_LOC "clk_27m" 52;
+// ---- Xung nhịp và reset ----------------------------------------------------
+IO_LOC  "clk_27m" 52;
 IO_PORT "clk_27m" IO_TYPE=LVCMOS33 PULL_MODE=UP;
 
-IO_LOC "rst_n" 3;
+IO_LOC  "rst_n" 3;
 IO_PORT "rst_n" IO_TYPE=LVCMOS33 PULL_MODE=UP;
 
-IO_LOC "uart_tx" 18;
-IO_PORT "uart_tx" IO_TYPE=LVCMOS33 DRIVE=8;
+// ---- UART (qua bộ gỡ lỗi trên board, kênh /dev/ttyUSB1) --------------------
+IO_LOC  "uart_rx_pin" 18;
+IO_PORT "uart_rx_pin" IO_TYPE=LVCMOS33 PULL_MODE=UP;
 
-IO_LOC "uart_rx" 17;
-IO_PORT "uart_rx" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_LOC  "uart_tx_pin" 17;
+IO_PORT "uart_tx_pin" IO_TYPE=LVCMOS33 DRIVE=8;
 
-IO_LOC "led_tx_active" 10;
-IO_PORT "led_tx_active" IO_TYPE=LVCMOS18 DRIVE=8;
+// ---- Đèn chỉ thị (sáng ở mức thấp) ----------------------------------------
+IO_LOC  "led0_n" 10;                    // đang nhận khung        (REQ-F-30)
+IO_PORT "led0_n" IO_TYPE=LVCMOS33 DRIVE=8;
 
-IO_LOC "led_rx_pass" 11;
-IO_PORT "led_rx_pass" IO_TYPE=LVCMOS18 DRIVE=8;
+IO_LOC  "led1_n" 11;                    // engine mật mã đang bận (REQ-F-31)
+IO_PORT "led1_n" IO_TYPE=LVCMOS33 DRIVE=8;
 
-IO_LOC "led_mac_err" 13;
-IO_PORT "led_mac_err" IO_TYPE=LVCMOS18 DRIVE=8;
+IO_LOC  "led2_n" 13;                    // khung bị loại          (REQ-F-32)
+IO_PORT "led2_n" IO_TYPE=LVCMOS33 DRIVE=8;

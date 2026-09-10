@@ -406,14 +406,95 @@ pha của REQ-V-04**: pha A khung cắt → im lặng, pha B khung hợp lệ sa
 2. `send_frame` tự đặt lại bộ đếm byte nhận, làm TC-508 chỉ đếm khung thứ hai.
 3. Kiểm "không phát thừa" bằng cách đọc ô nhớ chưa khởi tạo, thay vì đo lại sau một khoảng lặng.
 
-### WP-07 — Tích hợp phần cứng · TT: ⬜
-*(chưa có mục)*
+### WP-07 — Tích hợp phần cứng · TT: ✅ Done (2026-09-10)
 
-### WP-08 — Đo hiệu năng · TT: ⬜
-*(chưa có mục)*
+**Kết quả:** bitstream nạp được, **hệ thống chạy đúng trên board thật**. Bản mã AES-256-CTR
+và digest SHA-256 nhận về khớp chính xác hiện thực tham chiếu Python, ở **cả 19 độ dài
+payload** từ 1 tới 512 byte.
 
-### WP-09 — Test đối kháng · TT: ⬜
-*(chưa có mục)*
+| Chỉ số | Đo được | Ngưỡng | |
+|---|---|---|---|
+| LUT4 | 6664 / 8640 (77%) | ≤ 7776 (REQ-R-01) | ✅ |
+| DFF | 3568 / 6480 (55%) | ≤ 5184 (REQ-R-02) | ✅ |
+| BSRAM | 5 / 26 (19%) | — | |
+| ALU | 884 / 6480 (13%) | — | |
+| IOB | 7 / 276 | — | |
+| F_max | **46,85 MHz** | ≥ 27,0 MHz (REQ-P-01) | ✅ |
+
+#### Lỗi 1 — P&R THẤT BẠI dù tài nguyên mới dùng 80%
+
+`nextpnr`: *"Unable to find legal placement for all cells, design is probably at utilisation
+limit"* — trong khi báo cáo cùng lúc nói LUT4 80%, DFF 60%.
+
+Nguyên nhân: bộ nhớ khóa vòng AES là mảng 15 × **128 bit**. Cổng BSRAM của Gowin rộng tối đa
+32 bit nên mảng đó không vào BSRAM được, yosys rơi về RAM phân tán và sinh **32 khối
+RAM16SDP4**. RAM phân tán chỉ đặt được ở một số ô nhất định, và với 80% LUT đã chiếm chỗ thì
+bộ đặt chỗ không tìm nổi cách sắp xếp hợp lệ.
+
+Sửa: tách thành **bốn** bộ nhớ 16 × 32 bit song song, thêm thuộc tính `ram_style = "block"`.
+Kết quả: 32 RAM16SDP4 → **0**, BSRAM 1 → 5 (còn thừa 21 khối), và P&R chạy qua.
+
+Bài học: *"còn 20% tài nguyên"* không có nghĩa là *"đặt chỗ được"*. Loại tài nguyên và ràng
+buộc vị trí quan trọng ngang số lượng.
+
+#### Lỗi 2 — cắt bit ở đúng giá trị biên: LEN = 512
+
+Khung 128 byte chạy hoàn hảo; khung **512 byte luôn bị loại**.
+
+Nguyên nhân: `feed_total = {6'd0, len[AW-1:0]} + 18` với `AW = 9`. LEN tối đa 512 = `10'h200`,
+tức bit thứ 9 — đúng bit bị `len[8:0]` cắt mất. Với LEN = 512 thì `len[8:0] = 0` và
+`feed_total = 18` thay vì 530, nên SHA chỉ băm phần đầu khung và digest không bao giờ khớp.
+
+Chỉ sai ở **đúng một giá trị** trong dải hợp lệ. Test một độ dài duy nhất sẽ không bao giờ
+thấy. Đã thêm `--mode sweep` quét 19 độ dài gồm mọi giá trị biên lũy thừa hai ±1.
+
+#### Ghi chú về báo cáo timing của nextpnr
+
+nextpnr in `"PASS at 12.00 MHz"` cho mọi miền xung nhịp, dễ tưởng ràng buộc SDC không được
+nạp. Kiểm lại: log có dòng `constraining clock net 'clk_27m' to 27.00 MHz`, tức SDC **có**
+được áp dụng; câu "PASS at 12.00 MHz" là cách nextpnr-himbaechel đặt tên miền theo cell và
+in ngưỡng mặc định. Con số có ý nghĩa là **F_max = 46,85 MHz**, vượt 27 MHz 1,7 lần.
+
+### WP-08 — Đo hiệu năng · TT: ✅ Done (2026-09-10)
+
+`--mode bench`, 100 khung × 128 byte payload, trên board thật:
+
+| Chỉ số | Đo được | Ngưỡng | |
+|---|---|---|---|
+| Tỉ lệ mất khung | **0,00%** (0/100) | 0% (REQ-P-02) | ✅ |
+| Độ trễ min / avg / max | 32,34 / **32,42** / 32,55 ms | ≤ 40 ms (REQ-P-03) | ✅ |
+| Độ lệch chuẩn độ trễ | 0,03 ms | — | |
+| Thông lượng | **10 778 B/s** (86,2 kbps) | ≥ 8000 B/s (REQ-P-04) | ✅ |
+
+Độ lệch chuẩn 0,03 ms trên 100 khung cho thấy đường xử lý là **tất định**: không có bộ đệm
+nào tràn, không có đường nào phụ thuộc dữ liệu. Đây là hệ quả trực tiếp của kiến trúc lặp
+một miền xung nhịp.
+
+Thông lượng 10 778 B/s so với trần lý thuyết của UART 115200 (11 520 B/s) là **93,6%** —
+phần thiếu là 20 byte header và 32 byte digest mỗi khung, không phải do engine chậm. Engine
+AES chạy ở 14,4 MB/s, tức nhanh hơn đường truyền hơn 1000 lần (ADR-0008).
+
+Log gốc: `evidence/hw/20260910-0956-TC-602-bench.log`.
+
+### WP-09 — Test đối kháng · TT: ✅ Done (2026-09-10)
+
+Cả ba kịch bản đều chạy **đủ hai pha** theo REQ-V-04:
+
+| Test | Pha A (kích thích tiêu cực) | Pha B (bằng chứng còn sống) | |
+|---|---|---|---|
+| TC-603 tamper | lật 1 bit payload → 0 byte trả về | khung hợp lệ ngay sau → đúng | ✅ |
+| TC-604 timeout | khung cắt sau 10 byte → 0 byte | sau watchdog 0,62 s → đúng | ✅ |
+| TC-605 garbage | 32 byte rác → 0 byte | rác + khung hợp lệ → nhận đúng | ✅ |
+
+**Vì sao pha B là bắt buộc.** Ở thiết kế trước, `--mode tamper` và `--mode timeout` chỉ kiểm
+"FPGA trả về 0 byte" và **cả hai vẫn báo PASS trong khi bitstream hỏng hoàn toàn**. Một test
+chỉ có pha A không phân biệt được "từ chối đúng" với "đã chết" — hai trạng thái đó nhìn từ
+ngoài giống hệt nhau.
+
+Điều này không phải giả định: chính ở WP-06 lỗi bắt tay `valid`/`ready` đã làm toàn hệ thống
+câm lặng, và triệu chứng bên ngoài **y hệt** hành vi đúng khi digest sai.
+
+Log gốc: `evidence/hw/20260910-0956-TC-{tamper,timeout,garbage}.log`.
 
 ### WP-10 — RTM & báo cáo · TT: ⬜
 *(chưa có mục)*
@@ -450,9 +531,15 @@ Ngân sách đã điều chỉnh theo ADR-0007 sau đợt đo này.
 
 ### 3.2 Tài nguyên toàn thiết kế
 
-| Ngày | Commit | LUT4 | % | DFF | % | BSRAM | F_max | Log |
+| Ngày | Phiên bản | LUT4 | % | DFF | % | BSRAM | F_max | Kết quả |
 |---|---|---|---|---|---|---|---|---|
-| — | — | — | — | — | — | — | — | — |
+| 2026-09-09 | `uart_echo_top` (thăm dò WP-01) | 331 | 3% | 222 | 3% | 0 | 140 MHz | nạp OK |
+| 2026-09-10 | `top_secure_link`, khóa vòng ở RAM phân tán | 6940 | 80% | 3888 | 60% | 1 | — | **P&R THẤT BẠI** |
+| 2026-09-10 | `top_secure_link`, khóa vòng ở BSRAM | 6688 | 77% | 3568 | 55% | 5 | 48,68 MHz | P&R OK |
+| 2026-09-10 | **bản cuối (sửa LEN=512)** | **6664** | **77%** | **3568** | **55%** | **5** | **46,85 MHz** | ✅ chạy trên board |
+
+Ngưỡng: REQ-R-01 LUT4 ≤ 7776 (90%), REQ-R-02 DFF ≤ 5184 (80%), REQ-P-01 F_max ≥ 27,0 MHz.
+Log gốc trong `evidence/synth/`.
 
 ### 3.3 Hiệu năng phần cứng
 
@@ -461,6 +548,10 @@ Ngân sách đã điều chỉnh theo ADR-0007 sau đợt đo này.
 | 2026-09-09 | uartloop (TC-600) | 512 byte | **0** | — | gate WP-01 | `evidence/hw/` |
 | 2026-09-09 | uartloop | 1024 byte | **0** | 11.5 kB/s | — | `evidence/hw/` |
 | 2026-09-09 | uartloop | 4096 byte | **0** | 11.5 kB/s | 355.6 ms | `evidence/hw/20260909-2230-TC600-uartloop-4096.log` |
+| 2026-09-10 | echo (TC-601) | 128 byte | 0 | — | 32,4 ms khứ hồi | `evidence/hw/20260910-0957-TC-601-echo.log` |
+| 2026-09-10 | sweep (TC-601s) | 19 độ dài, 1→512 | **0** | — | 10,3→99,2 ms | `evidence/hw/20260910-0957-TC-601s-sweep.log` |
+| 2026-09-10 | **bench (TC-602)** | **100 khung × 128 B** | **0 (0,00%)** | **10 778 B/s** | **avg 32,42 ms, σ 0,03** | `evidence/hw/20260910-0956-TC-602-bench.log` |
+| 2026-09-10 | tamper/timeout/garbage | mỗi bài 2 pha | — | — | đủ liveness | `evidence/hw/20260910-0956-TC-*.log` |
 
 ---
 
@@ -502,6 +593,9 @@ Phần này quý hơn phần "đã chạy". Ghi lại để không ai (kể cả
 | 15 | **Địa chỉ đọc bộ nhớ để trong thanh ghi** (lần 3) | Dữ liệu trễ một byte | Bộ nhớ đã trễ 1 chu kỳ; địa chỉ qua thanh ghi thành 2. **Để địa chỉ là tổ hợp** |
 | 16 | Watchdog 2²⁴ chu kỳ cố định | REQ-F-24 không testbench nào kiểm nổi | Tham số hóa để mô phỏng dùng giá trị nhỏ |
 | 17 | Viết testbench toàn phép kiểm ÂM ("không có phản hồi") | Sẽ PASS trên thiết kế chết | Phải có ít nhất một phép kiểm DƯƠNG. Chính tôi viết ra rồi tự bắt được |
+| 18 | Mảng khóa vòng 15×128 bit, tin rằng yosys sẽ đưa vào BSRAM | 32 RAM16SDP4, **P&R thất bại ở 80% LUT** | Cổng BSRAM Gowin rộng tối đa 32 bit. Tách thành 4 mảng ×32 + `ram_style="block"` |
+| 19 | `len[AW-1:0]` với AW=9 trong khi LEN tối đa là 512 | Khung 512 byte luôn bị loại, 128 byte hoàn hảo | Cắt đúng bit thứ 9. Lỗi biên chỉ lộ ở một giá trị duy nhất — phải quét dải |
+| 20 | Tin rằng "còn 20% tài nguyên" nghĩa là đặt chỗ được | P&R vẫn thất bại | Loại tài nguyên và ràng buộc vị trí quan trọng ngang số lượng |
 | 4 | Chép gán chân UART từ `constraints/tangnano9k.cst` cũ (rx=17, tx=18) | 0/512 byte vọng về | Ngược chân. Đúng là **rx=18, tx=17** — đã đo trên board |
 | 5 | Tin rằng giả thuyết "đảo chân UART" đã bị bác bỏ ở phiên trước | Sai | Kết luận cũ không có số đo đi kèm. Bài học: một giả thuyết chỉ được coi là bác bỏ khi có phép đo, không phải khi có lập luận |
 

@@ -1,6 +1,6 @@
 # RTM — Requirements Traceability Matrix
 
-**Artifact #11 / 11** · Cập nhật: 2026-09-09 · Trạng thái: 🚧 Khung đã lập, chờ WP thực thi
+**Artifact #11 / 11** · Cập nhật: 2026-09-10 · Trạng thái: 36/39 REQ đã đóng có bằng chứng
 
 ---
 
@@ -53,15 +53,15 @@ Bảng này là **gate cuối** của dự án (WP-10). Điều kiện đóng:
 
 | REQ | Mô tả ngắn | WP | Module | Test | Bằng chứng | TT |
 |---|---|---|---|---|---|---|
-| REQ-F-20 | Đồng bộ bằng quét preamble | WP-06 | MOD-PROTO-RX, MOD-PROTO-TX | TC-500, TC-501, TC-508 | `make sim-top` — khung khứ hồi đúng bản mã và digest; 32 byte rác trước preamble vẫn nhận đúng | ✅ (còn TC-605 trên board) |
-| REQ-F-21 | LEN trong [1,512] | WP-06 | MOD-PROTO-RX, MOD-PROTO-BUF | TC-504, TC-505 | LEN=0 và LEN=1024 đều bị loại | ✅ |
-| REQ-F-22 | Chỉ phát khi digest khớp | WP-06 | MOD-PROTO-DGST, MOD-PROTO-FSM | TC-502, TC-503 | lật 1 bit payload và 1 bit digest → im lặng; khung hợp lệ sau đó vẫn chạy | ✅ (còn TC-603 trên board) |
+| REQ-F-20 | Đồng bộ bằng quét preamble | WP-06, WP-07 | MOD-PROTO-RX, MOD-PROTO-TX | TC-500, TC-501, TC-508, TC-605 | mô phỏng + **board thật: 19/19 độ dài đúng, rác trước preamble vẫn nhận đúng** | ✅ |
+| REQ-F-21 | LEN trong [1,512] | WP-06, WP-07 | MOD-PROTO-RX, MOD-PROTO-BUF | TC-504, TC-505, TC-601s | LEN=0 và 1024 bị loại (cả mô phỏng lẫn board); LEN=512 đúng sau khi sửa lỗi cắt bit | ✅ |
+| REQ-F-22 | Chỉ phát khi digest khớp | WP-06, WP-09 | MOD-PROTO-DGST, MOD-PROTO-FSM | TC-502, TC-503, TC-603 | mô phỏng + **board thật (TC-603 đủ 2 pha)** | ✅ |
 | REQ-F-23 | So sánh digest hằng thời | WP-06 | MOD-PROTO-DGST | đọc RTL | XOR 256 bit + OR-reduce, 1 chu kỳ, không nhánh phụ thuộc dữ liệu | ✅ |
-| REQ-F-24 | Watchdog 2²⁴ chu kỳ | WP-06 | MOD-PROTO-RX | TC-506 | khung cắt → im lặng, **và** khung hợp lệ sau đó chạy đúng (đủ hai pha REQ-V-04) | ✅ (còn TC-604 trên board) |
+| REQ-F-24 | Watchdog 2²⁴ chu kỳ | WP-06, WP-09 | MOD-PROTO-RX | TC-506, TC-604 | mô phỏng + **board thật: sau 0,62 s watchdog, khung tiếp theo chạy đúng** | ✅ |
 | REQ-F-25 | AES và SHA loại trừ tương hỗ | WP-05 | MOD-FAB-ARB, MOD-FAB-MUX | TC-400, TC-401 | assertion mọi chu kỳ: 0 lần hai IP cùng bận; grant luôn one-hot | ✅ |
-| REQ-F-30 | LED0 đang nhận | WP-07 | MOD-IO-LED | TC-606 | TBD | ⬜ |
-| REQ-F-31 | LED1 engine bận | WP-07 | MOD-IO-LED | TC-606 | TBD | ⬜ |
-| REQ-F-32 | LED2 chớp khi loại khung | WP-07 | MOD-IO-LED | TC-606 | TBD | ⬜ |
+| REQ-F-30 | LED0 đang nhận | WP-07 | MOD-IO-LED | TC-606 | mạch đã nạp; **chờ quan sát bằng mắt + quay video** | 🚧 |
+| REQ-F-31 | LED1 engine bận | WP-07 | MOD-IO-LED | TC-606 | mạch đã nạp; **chờ quan sát bằng mắt + quay video** | 🚧 |
+| REQ-F-32 | LED2 chớp khi loại khung | WP-07 | MOD-IO-LED | TC-606 | mạch đã nạp; **chờ quan sát bằng mắt + quay video** | 🚧 |
 
 ### 3.4 Giao diện
 
@@ -77,10 +77,10 @@ Bảng này là **gate cuối** của dự án (WP-10). Điều kiện đóng:
 
 | REQ | Ngưỡng | WP | Test | Bằng chứng | TT |
 |---|---|---|---|---|---|
-| REQ-P-01 | F_max ≥ 27 MHz | WP-07 | báo cáo nextpnr | TBD | ⬜ |
-| REQ-P-02 | 0% mất khung / 100 khung | WP-08 | TC-602 | TBD | ⬜ |
-| REQ-P-03 | Độ trễ ≤ 40 ms | WP-08 | TC-602 | TBD | ⬜ |
-| REQ-P-04 | Thông lượng ≥ 8000 B/s | WP-08 | TC-602 | TBD | ⬜ |
+| REQ-P-01 | F_max ≥ 27 MHz | WP-07 | báo cáo nextpnr | **46,85 MHz** — `evidence/synth/20260910-0957-*.log` | ✅ |
+| REQ-P-02 | 0% mất khung / 100 khung | WP-08 | TC-602 | **0/100 (0,00%)** — `evidence/hw/*-TC-602-bench.log` | ✅ |
+| REQ-P-03 | Độ trễ ≤ 40 ms | WP-08 | TC-602 | **max 32,55 ms**, avg 32,42, σ 0,03 | ✅ |
+| REQ-P-04 | Thông lượng ≥ 8000 B/s | WP-08 | TC-602 | **10 778 B/s** (86,2 kbps) | ✅ |
 | REQ-P-05 | AES ≤ 32 chu kỳ/khối (ADR-0008) | WP-04 | đếm trong mô phỏng | 30 chu kỳ | ✅ |
 | REQ-P-06 | SHA ≤ 70 chu kỳ/khối | WP-03 | TC-205 | 65 chu kỳ nén (1 init + 64 vòng) | ✅ |
 
@@ -88,8 +88,8 @@ Bảng này là **gate cuối** của dự án (WP-10). Điều kiện đóng:
 
 | REQ | Ngưỡng | WP | Cách đo | Số đo thật | TT |
 |---|---|---|---|---|---|
-| REQ-R-01 | LUT4 ≤ 7776 | WP-07 | nextpnr | TBD | ⬜ |
-| REQ-R-02 | DFF ≤ 5184 | WP-07 | nextpnr | TBD | ⬜ |
+| REQ-R-01 | LUT4 ≤ 7776 | WP-07 | nextpnr | **6664 / 8640 (77%)** | ✅ |
+| REQ-R-02 | DFF ≤ 5184 | WP-07 | nextpnr | **3568 / 6480 (55%)** | ✅ |
 | REQ-R-03 | AES ≤ 2600 LUT4 (ADR-0008) | WP-04 | `make synth-aes` | **2528 LUT4 (97% ngân sách)** | ✅ |
 | REQ-R-04 | SHA ≤ 2000 LUT4 (ADR-0007) | WP-03 | `make synth-sha` | **1661 LUT4 (83% ngân sách)** | ✅ |
 
@@ -97,13 +97,13 @@ Bảng này là **gate cuối** của dự án (WP-10). Điều kiện đóng:
 
 | REQ | Mô tả | WP | Cách xác nhận | TT |
 |---|---|---|---|---|
-| REQ-V-01 | Mỗi IP có testbench, mã thoát đúng | WP-03, WP-04 | `make sim-*; echo $?` | ⬜ |
-| REQ-V-02 | Chỉ vector chính thức làm nguồn sự thật | WP-03, WP-04 | Review, TEST_PLAN §2 | ⬜ |
-| REQ-V-03 | Có test phần cứng thật | WP-08 | Log trong `evidence/` | ⬜ |
-| REQ-V-04 | Test từ chối phải kèm liveness | WP-09 | Review mã test: đủ pha A+B | ⬜ |
-| REQ-N-01 | Tổng hợp sạch, không latch | mọi WP | `make lint` | ⬜ |
-| REQ-N-02 | Header file có REQ-ID | mọi WP | Script kiểm trong `make lint` | ⬜ |
-| REQ-N-03 | Khóa tách ra `config/keys.vh` | WP-07 | Review | ⬜ |
+| REQ-V-01 | Mỗi IP có testbench, mã thoát đúng | WP-03, WP-04 | 6 testbench PASS, `$fatal(1)` khi FAIL | ✅ |
+| REQ-V-02 | Chỉ vector chính thức làm nguồn sự thật | WP-03, WP-04 | mọi vector sinh từ hiện thực tham chiếu; 2 vector bịa đã bị bắt và thay | ✅ |
+| REQ-V-03 | Có test phần cứng thật | WP-08 | 7 log trong `evidence/hw/`, có timestamp | ✅ |
+| REQ-V-04 | Test từ chối phải kèm liveness | WP-09 | TC-603/604/605 đều chạy đủ pha A+B trên board | ✅ |
+| REQ-N-01 | Tổng hợp sạch, không latch | mọi WP | `make lint` sạch, 0 cảnh báo | ✅ |
+| REQ-N-02 | Header file có REQ-ID | mọi WP | `check_headers.sh`, đã tự kiểm bằng vi phạm cố ý | ✅ |
+| REQ-N-03 | Khóa tách ra `config/keys.vh` | WP-07 | `check_layering.sh` cưỡng chế chỉ top được include | ✅ |
 
 ## 4. Kiểm tra ngược — module nào chưa có requirement
 
@@ -134,7 +134,7 @@ phải hoặc gắn REQ, hoặc xóa.
 
 | Chỉ số | Định nghĩa | Mục tiêu | Hiện tại |
 |---|---|---|---|
-| Traceability coverage | % REQ có đủ module + test + bằng chứng | 100% | 26/39 = 67% |
+| Traceability coverage | % REQ có đủ module + test + bằng chứng | 100% | **36/39 = 92%** (3 mục còn lại là REQ-F-30..32, chờ quay video) |
 | Orphan rate (REQ) | % REQ không có code/test | 0% | 0% |
 | Orphan rate (module) | % module không có REQ | 0% | 0% |
 | Freshness | % tài liệu khớp commit hiện tại | 100% | 100% |

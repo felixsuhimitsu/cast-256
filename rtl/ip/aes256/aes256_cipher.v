@@ -21,9 +21,17 @@
 // 4 trong 8 khối S-Box còn được DÙNG CHUNG với key schedule (ADR-0007). An toàn
 // vì key schedule chạy một lần lúc nạp khóa, không bao giờ trùng với vòng mã hóa.
 //
-// Khóa vòng lưu trong mảng 15 x 128 bit. Truy cập TUẦN TỰ theo số vòng nên
-// yosys ánh xạ được thành bộ nhớ, tránh phải dựng bộ chọn 15:1 trên 128 bit
-// (ước tính ~900 LUT4 nếu làm bằng mux).
+// Khóa vòng lưu trong BỐN bộ nhớ 16 x 32 bit song song, không phải một mảng
+// 15 x 128. Lý do là ràng buộc của phần cứng Gowin: cổng BSRAM rộng tối đa 32
+// bit, nên mảng 128 bit không ánh xạ được vào BSRAM và yosys rơi về RAM phân
+// tán (RAM16SDP4). Bản đầu sinh ra 32 khối RAM16SDP4 và nextpnr KHÔNG ĐẶT CHỖ
+// ĐƯỢC — dù LUT4 mới dùng 80% và DFF 60%, vì RAM phân tán chỉ nằm được ở một
+// số ô nhất định.
+//
+// Chia thành bốn bộ nhớ 32 bit + thuộc tính ram_style="block" đưa chúng vào
+// BSRAM (còn thừa 25/26 khối), giải phóng hoàn toàn các ô RAM phân tán.
+//
+// Vẫn tránh được bộ chọn 15:1 trên 128 bit (~900 LUT4 nếu làm bằng mux).
 //
 // Thời gian: 1 chu kỳ chờ bộ nhớ + 1 chu kỳ AddRoundKey ban đầu + 14 vòng x 2
 // chu kỳ = 30 chu kỳ mỗi khối. Ở 27 MHz tương đương 14,4 MB/s — vẫn nhanh hơn
@@ -66,7 +74,10 @@ module aes256_cipher (
     //------------------------------------------------------------------
     // Bộ nhớ khóa vòng — 15 x 128 bit, truy cập tuần tự
     //------------------------------------------------------------------
-    reg  [127:0] rk_mem [0:14];
+    (* ram_style = "block" *) reg [31:0] rk_mem0 [0:15];
+    (* ram_style = "block" *) reg [31:0] rk_mem1 [0:15];
+    (* ram_style = "block" *) reg [31:0] rk_mem2 [0:15];
+    (* ram_style = "block" *) reg [31:0] rk_mem3 [0:15];
     reg  [127:0] rk_rd;
     // Đọc bộ nhớ có thanh ghi: rk_rd ở chu kỳ N = rk_mem[rk_addr_rd ở chu kỳ N-1].
     // Với hai chu kỳ mỗi vòng, địa chỉ được nâng ở nửa sau của vòng nên nửa đầu
@@ -80,9 +91,14 @@ module aes256_cipher (
     wire [127:0] ks_data;
 
     always @(posedge clk) begin
-        if (ks_we)
-            rk_mem[ks_addr] <= ks_data;
-        rk_rd <= rk_mem[rk_addr_rd];
+        if (ks_we) begin
+            rk_mem0[ks_addr] <= ks_data[127:96];
+            rk_mem1[ks_addr] <= ks_data[95:64];
+            rk_mem2[ks_addr] <= ks_data[63:32];
+            rk_mem3[ks_addr] <= ks_data[31:0];
+        end
+        rk_rd <= {rk_mem0[rk_addr_rd], rk_mem1[rk_addr_rd],
+                  rk_mem2[rk_addr_rd], rk_mem3[rk_addr_rd]};
     end
 
     //------------------------------------------------------------------
