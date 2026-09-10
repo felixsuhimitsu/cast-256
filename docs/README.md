@@ -3,7 +3,11 @@
 **Đề tài:** Thiết kế và tích hợp IP mã hóa AES-256 và SHA-256 cho giao thức truyền và nhận dữ liệu
 **Đội:** Hủ Tiếu — Trường ĐH Công nghệ Thông tin và Truyền thông, ĐH Thái Nguyên
 **Nhánh:** `feat/aes-sha256-ip-integration`
-**Bắt đầu:** 2026-09-09
+**Bắt đầu:** 2026-09-09 · **Hoàn thành 11/11 work package:** 2026-09-10
+
+> **Trạng thái:** hệ thống chạy trên phần cứng thật. 100 khung liên tiếp, 0% mất,
+> độ trễ 32,4 ms, thông lượng 10 778 B/s, F_max 46,85 MHz, 6664/8640 LUT4 (77%).
+> Toàn bộ 6 testbench mô phỏng PASS; 19/19 độ dài payload đúng trên board.
 
 ---
 
@@ -38,11 +42,11 @@ Thứ tự các bước, và artifact tương ứng. Mỗi bước chỉ đượ
 | 6 | Estimation | [`04-plan/ESTIMATION.md`](04-plan/ESTIMATION.md) | ✅ |
 | 7 | Risk & delegation | [`05-risk/RISK_DELEGATION.md`](05-risk/RISK_DELEGATION.md) | ✅ |
 | 8 | Definition of Ready / Done | [`06-gates/`](06-gates/) | ✅ |
-| 9 | Vertical slice | `rtl/` + [`10-devbook/DEVELOPMENT_BOOK.md`](10-devbook/DEVELOPMENT_BOOK.md) | 🚧 |
-| 10 | Test & gate | [`07-test/TEST_PLAN.md`](07-test/TEST_PLAN.md) | 🚧 |
-| 11 | Traceability & telemetry | [`08-traceability/RTM.md`](08-traceability/RTM.md) | 🚧 |
+| 9 | Vertical slice | `rtl/` + [`10-devbook/DEVELOPMENT_BOOK.md`](10-devbook/DEVELOPMENT_BOOK.md) | ✅ |
+| 10 | Test & gate | [`07-test/TEST_PLAN.md`](07-test/TEST_PLAN.md) | ✅ |
+| 11 | Traceability & telemetry | [`08-traceability/RTM.md`](08-traceability/RTM.md) | ✅ 36/39 |
 
-Xuyên suốt: [`09-decisions/`](09-decisions/) (ADR — mỗi quyết định kiến trúc một file) và
+Xuyên suốt: [`09-decisions/`](09-decisions/) (8 ADR — mỗi quyết định kiến trúc một file) và
 [`10-devbook/DEVELOPMENT_BOOK.md`](10-devbook/DEVELOPMENT_BOOK.md) (nhật ký: đã thử gì, sai
 ở đâu, vì sao chọn hướng hiện tại).
 

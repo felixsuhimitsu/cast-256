@@ -14,6 +14,8 @@ Lịch sử quyết định phải đọc được, kể cả những quyết đ
 | [ADR-0004](ADR-0004-khong-dung-hmac.md) | Không dùng HMAC-SHA-256 trong bitstream nộp | Accepted | 2026-09-09 |
 | [ADR-0005](ADR-0005-uart-nha-som-sau-stop-bit.md) | UART RX nhả về IDLE ngay sau mẫu bit stop | Accepted | 2026-09-09 |
 | [ADR-0006](ADR-0006-hop-dong-csi.md) | Chuẩn hóa hợp đồng giao diện CSI cho mọi IP | Accepted | 2026-09-09 |
+| [ADR-0007](ADR-0007-dieu-chinh-ngan-sach-dien-tich.md) | Điều chỉnh ngân sách diện tích sau khi đo thật | Accepted | 2026-09-09 |
+| [ADR-0008](ADR-0008-ngan-sach-aes-sau-toi-uu.md) | Chốt ngân sách AES sau khi giảm 16→8 S-Box | Accepted | 2026-09-09 |
 
 ## Mẫu ADR
 

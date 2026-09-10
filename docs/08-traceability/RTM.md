@@ -137,11 +137,23 @@ phải hoặc gắn REQ, hoặc xóa.
 | Traceability coverage | % REQ có đủ module + test + bằng chứng | 100% | **36/39 = 92%** (3 mục còn lại là REQ-F-30..32, chờ quay video) |
 | Orphan rate (REQ) | % REQ không có code/test | 0% | 0% |
 | Orphan rate (module) | % module không có REQ | 0% | 0% |
-| Freshness | % tài liệu khớp commit hiện tại | 100% | 100% |
+| Freshness | % tài liệu khớp commit hiện tại | 100% | 100% (quy tắc cùng-commit) |
 | Decision coverage | % thay đổi kiến trúc có ADR | 100% | 100% (8/8) |
 | Review evidence | % artifact có mục trong human correction log | 100% | **0%** ⚠️ |
 
-> Ô cuối đang là 0% một cách trung thực: toàn bộ artifact hiện tại là bản nháp do AI soạn,
-> **chưa** qua bước người phụ trách chỉ ra chỗ sai và sửa. Theo `RISK_DELEGATION.md` §4,
-> chúng chưa được coi là hoàn thành. Đây là việc tiếp theo phải làm, không phải chi tiết
-> hình thức.
+> Ô cuối là 0% một cách trung thực: toàn bộ artifact do AI soạn và **chưa** qua bước người
+> phụ trách chỉ ra chỗ sai rồi sửa. AI đã tự bắt được 20 lỗi của chính mình (xem
+> `DEVELOPMENT_BOOK.md` §4.2), nhưng tự sửa không phải review. Theo `RISK_DELEGATION.md` §4,
+> các artifact vì vậy chưa được coi là hoàn thành. Danh sách 5 chỗ đáng soi nhất ở
+> `DEVELOPMENT_BOOK.md` §5.
+
+## 7. Ba requirement chưa đóng
+
+| REQ | Thiếu gì | Ai làm được |
+|---|---|---|
+| REQ-F-30 | LED0 sáng khi đang nhận khung | Cần mắt người nhìn board |
+| REQ-F-31 | LED1 sáng khi engine bận | như trên |
+| REQ-F-32 | LED2 chớp khi khung bị loại | như trên |
+
+Mạch đã nạp và logic đã có trong `led_status.v`; chỉ thiếu bước quan sát và ghi hình.
+Đây là lý do Traceability coverage dừng ở 92% thay vì 100%.

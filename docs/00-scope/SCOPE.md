@@ -21,13 +21,13 @@ Thiết kế **hai IP core mật mã độc lập, tự viết, có hợp đồn
 chứng minh chúng **tích hợp được** vào một giao thức truyền/nhận dữ liệu thực chạy trên
 FPGA giá rẻ.
 
-| ID | Mục tiêu | Tiêu chí đạt (đo được) |
-|---|---|---|
-| G1 | IP AES-256 | Vượt 100% vector NIST SP 800-38A cho AES-256-CTR; interface theo `IP_INTERFACE_CONTRACT.md` |
-| G2 | IP SHA-256 | Vượt 100% vector FIPS 180-4 (bao gồm ca biên độ dài 55/56/64 byte); cùng interface |
-| G3 | Tích hợp | Khung dữ liệu đi qua UART, được mã hóa + băm, trả về đúng nguyên bản, 0% mất gói trên 100 khung liên tiếp |
-| G4 | Vừa thiết bị | Tổng hợp và P&R thành công trên GW1NR-LV9QN88PC6/I5 (8640 LUT4), timing PASS ở 27 MHz |
-| G5 | Tài liệu sống | RTM phủ 100% requirement → module → test; không có requirement mồ côi |
+| ID | Mục tiêu | Tiêu chí đạt (đo được) | Kết quả 2026-09-10 |
+|---|---|---|---|
+| G1 | IP AES-256 | Vượt 100% vector NIST SP 800-38A cho AES-256-CTR; interface theo `IP_INTERFACE_CONTRACT.md` | ✅ 17/17, 2528 LUT4 |
+| G2 | IP SHA-256 | Vượt 100% vector FIPS 180-4 (bao gồm ca biên độ dài 55/56/64 byte); cùng interface | ✅ 17/17, 1661 LUT4 |
+| G3 | Tích hợp | Khung dữ liệu đi qua UART, được mã hóa + băm, trả về đúng nguyên bản, 0% mất gói trên 100 khung liên tiếp | ✅ 0/100 mất, 19/19 độ dài |
+| G4 | Vừa thiết bị | Tổng hợp và P&R thành công trên GW1NR-LV9QN88PC6/I5 (8640 LUT4), timing PASS ở 27 MHz | ✅ 6664 LUT4 (77%), 46,85 MHz |
+| G5 | Tài liệu sống | RTM phủ 100% requirement → module → test; không có requirement mồ côi | 🚧 36/39 (92%) |
 
 ## 3. Trong phạm vi (In scope)
 

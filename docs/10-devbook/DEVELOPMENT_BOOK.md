@@ -496,8 +496,39 @@ câm lặng, và triệu chứng bên ngoài **y hệt** hành vi đúng khi dig
 
 Log gốc: `evidence/hw/20260910-0956-TC-{tamper,timeout,garbage}.log`.
 
-### WP-10 — RTM & báo cáo · TT: ⬜
-*(chưa có mục)*
+### WP-10 — RTM & báo cáo · TT: ✅ Done (2026-09-10)
+
+**Đã làm:** đóng RTM (36/39 REQ có bằng chứng), cập nhật SCOPE §2 với kết quả đo, sinh
+`docs/hinh1_kien_truc.png`, dựng `docs/BaoCao_SanPham_HuTieu_VMBMATTT_2026.docx` + `.pdf`
+từ mẫu của ban tổ chức — **5 trang A4** đúng giới hạn.
+
+Mọi con số trong báo cáo đều truy được về một file log trong `evidence/`.
+
+#### Bốn lỗi khi dựng báo cáo
+
+1. **Chỉ số đoạn văn lệch.** Ghi đè nội dung vào ba tiêu đề mục (5. THỰC NGHIỆM,
+   5.4 Đánh giá bảo mật, 6. MỨC ĐỘ HOÀN THIỆN) vì nhầm rằng đoạn kế tiếp một tiêu đề là
+   ô trống. Sửa bằng cách đối chiếu lại toàn bộ bảng chỉ số của mẫu và dùng `after()` /
+   `before()` thay vì ghi đè.
+2. **Xóa bảng làm lệch chỉ số bảng.** `d.tables[5]` không còn tồn tại sau khi xóa
+   `d.tables[0]`. Phải lấy tham chiếu phần tử XML **trước** khi xóa.
+3. **Ký tự `‖` (U+2016) không có trong font**, hiển thị thành `l` — công thức
+   `SHA-256(LEN‖IV‖PT)` thành `SHA-256(LENlIVlPT)`, đọc ra vô nghĩa. Thay bằng `||`.
+   Đây là lỗi lặp lại từ lần làm báo cáo trước.
+4. **Hình bị cắt mất phần bên phải** khi đặt trong ô bảng của mẫu — đúng chỗ có hai khối
+   IP, tức là phần quan trọng nhất của hình. Ô bảng có bề rộng cố định hẹp hơn vùng chữ.
+   Sửa: bỏ bảng, đặt ảnh trong đoạn thường.
+
+Cả bốn đều là lỗi *hiển thị* chứ không phải nội dung, nhưng ba trong bốn chỉ phát hiện
+được bằng cách **kết xuất PDF rồi nhìn từng trang**. Đọc lại mã sinh báo cáo không đủ.
+
+#### Còn lại — thuộc phần người phụ trách, không phải AI
+
+| Việc | Vì sao AI không làm được |
+|---|---|
+| Quay video demo 3–5 phút | Cần thao tác vật lý; kịch bản đã viết sẵn ở mục 6.1 báo cáo |
+| Quan sát ba đèn LED (REQ-F-30..32) | Cần mắt người nhìn board |
+| Điền **Human correction log** (§5) | Theo định nghĩa phải do người làm — xem ghi chú bên dưới |
 
 ---
 
@@ -610,9 +641,31 @@ Theo `../05-risk/RISK_DELEGATION.md` §4: một artifact chỉ được đánh �
 |---|---|---|---|---|
 | — | — | — | — | — |
 
-> **Bảng này đang rỗng.** Nghĩa là chưa artifact nào được review thật sự, dù chúng trông
-> hoàn chỉnh. Đây là trạng thái trung thực, không phải thiếu sót về hình thức — và nó là
-> việc tiếp theo phải làm trước khi đánh dấu bất kỳ artifact nào là Done.
+> **Bảng này vẫn rỗng, và đó là điều cần nói thẳng.**
+>
+> Toàn bộ 11 artifact và toàn bộ RTL trong repo này do AI soạn. Chúng đã qua rất nhiều vòng
+> tự sửa — 20 mục trong §4.2 là những lần chính AI phát hiện mình sai — nhưng **tự sửa không
+> phải là review**. Theo `RISK_DELEGATION.md` §4 mà chính dự án này đặt ra, một artifact chỉ
+> hoàn thành khi **người phụ trách** giải thích được nó, chỉ ra ít nhất một chỗ AI sai hoặc
+> thiếu, sửa lại, và ghi vào bảng này.
+>
+> Vì vậy chỉ số "Review evidence" trong `RTM.md` §6 là **0%**, và nó nên ở nguyên đó cho tới
+> khi có người thật ngồi xuống đọc. Điền con số khác vào đó sẽ đúng nghĩa là rubber-stamp —
+> thứ mà toàn bộ quy trình này được dựng lên để chống.
+
+**Năm chỗ đáng soi nhất, xếp theo mức độ đáng ngờ:**
+
+1. **`aes256_sbox.v`** — hằng số ma trận đổi cơ sở do script sinh. Đã kiểm 256/256 giá trị,
+   nhưng nếu `gen_sbox_basis.py` sai thì cả script lẫn Verilog cùng sai một kiểu và test
+   vẫn PASS. Cách kiểm độc lập: so vài giá trị S-Box với bảng in trong FIPS 197 Hình 7.
+2. **`session_fsm.v`** — module dài nhất, 26 trạng thái, đã có 4 lỗi trong quá trình viết.
+   Đáng đọc lại từng nhánh chuyển trạng thái.
+3. **Giới hạn bảo mật ở SRS §10** — kiểm xem phần công bố đã đủ trung thực chưa, có chỗ nào
+   nói quá về mức bảo vệ không.
+4. **Các con số trong báo cáo** — mỗi con số phải truy được về một file trong `evidence/`.
+   Đối chiếu ngẫu nhiên vài con số.
+5. **`ESTIMATION.md`** — ước lượng PERT dựa trên cảm tính, chưa bao giờ được đối chiếu với
+   thời gian thực tế đã bỏ ra.
 
 Gợi ý những chỗ đáng soi kỹ nhất, vì đó là chỗ AI dễ sai nhất:
 
