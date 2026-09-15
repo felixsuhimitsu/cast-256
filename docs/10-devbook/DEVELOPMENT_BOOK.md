@@ -522,12 +522,26 @@ Mọi con số trong báo cáo đều truy được về một file log trong `e
 Cả bốn đều là lỗi *hiển thị* chứ không phải nội dung, nhưng ba trong bốn chỉ phát hiện
 được bằng cách **kết xuất PDF rồi nhìn từng trang**. Đọc lại mã sinh báo cáo không đủ.
 
+#### Vẽ lại Hình 1 sau phản hồi của người dùng (2026-09-15)
+
+Bản đầu bị chê "mũi tên chồng chéo lên nhau, nhìn rối". Đúng: bản đó đặt các khối theo
+toạ độ tự do rồi nối bằng mũi tên **chéo**, nên chỉ cần vài đường là cắt nhau, và hai
+mũi tên hai chiều giữa fabric và IP chạy đè lên nhau.
+
+Sửa bằng cách đổi *nguyên tắc bố cục* chứ không phải kéo lại từng mũi tên:
+- Mỗi tầng là một **băng ngang** chiếm trọn chiều rộng.
+- Có **cột lề trái** riêng cho nhãn tầng, nên nhãn không bao giờ đè lên khối.
+- Mọi mũi tên chỉ đi **thẳng đứng hoặc thẳng ngang** — không có đường chéo thì về mặt
+  hình học không thể có hai mũi tên cắt nhau ngoài điểm giao vuông góc có chủ đích.
+
+Script vẽ lưu ở `scripts/gen_figure.py` để tái lập được.
+
 #### Còn lại — thuộc phần người phụ trách, không phải AI
 
-| Việc | Vì sao AI không làm được |
+| Việc | Trạng thái |
 |---|---|
-| Quay video demo 3–5 phút | Cần thao tác vật lý; kịch bản đã viết sẵn ở mục 6.1 báo cáo |
-| Quan sát ba đèn LED (REQ-F-30..32) | Cần mắt người nhìn board |
+| Video demo, ảnh chụp | **Bỏ** — người phụ trách quyết định không quay/chụp vì không bắt buộc. Hàng "VIDEO DEMO / QR" trong báo cáo để trống có chủ đích |
+| Quan sát ba đèn LED (REQ-F-30..32) | Chưa làm; cần mắt người nhìn board |
 | Điền **Human correction log** (§5) | Theo định nghĩa phải do người làm — xem ghi chú bên dưới |
 
 ---

@@ -300,18 +300,20 @@ p = after(p, '• Tấn công kênh kề. Thời gian chạy AES là hằng đ�
 t = d.tables[4]
 cell(t, 0, 0, 'MÃ NGUỒN', 10, True)
 cell(t, 0, 1, 'github.com/felixsuhimitsu/cast-256 — nhánh feat/aes-sha256-ip-integration.\n'
-              'Gồm 20 file RTL, 6 testbench, bộ kiểm phần cứng, và lớp tài liệu 11 bước trong '
+              'Gồm 23 file RTL, 6 testbench, bộ kiểm phần cứng, và lớp tài liệu 11 bước trong '
               'docs/ (scope, spec, module map, kiến trúc, hợp đồng giao diện, WBS, ước lượng, rủi '
               'ro, gate, kế hoạch test, ma trận truy vết, 8 quyết định kiến trúc và nhật ký phát '
-              'triển).\nVIDEO DEMO: [chờ quay — kịch bản ở mục dưới]', 10)
-cell(t, 1, 0, 'TRẠNG THÁI HOÀN THIỆN', 10, True)
-cell(t, 1, 1, '[RTL ✓]   [Simulation ✓ — 6/6 testbench PASS]   [FPGA ✓ — chạy thật, 0% mất khung]   '
-              '[ASIC synthesis ✗ — ngoài phạm vi]', 10)
+              'triển).', 10)
+# Hàng VIDEO DEMO để TRỐNG theo yêu cầu — không quay video, không chụp ảnh.
+_vrow = t.add_row()
+t._tbl.remove(_vrow._tr)
+t.rows[0]._tr.addnext(_vrow._tr)
+cell(t, 1, 0, 'VIDEO DEMO / QR', 10, True)
+cell(t, 1, 1, '', 10)
 
-p = after(P[33],
-    'Kịch bản video: bài toán và mô hình đe dọa → sơ đồ bốn tầng và điểm tích hợp CSI → make sim '
-    '(6/6 PASS) → nạp bitstream, chạy sweep 19 độ dài và bench 100 khung, quan sát ba đèn LED → '
-    'chế độ tamper/timeout với hai pha A/B → kết luận và giới hạn.', 9, italic=True)
+cell(t, 2, 0, 'TRẠNG THÁI HOÀN THIỆN', 10, True)
+cell(t, 2, 1, '[RTL ✓]   [Simulation ✓ — 6/6 testbench PASS]   [FPGA ✓ — chạy thật, 0% mất khung]   '
+              '[ASIC synthesis ✗ — ngoài phạm vi]', 10)
 
 # ─────────────── 6.2 Kết luận ───────────────
 setp(P[35],

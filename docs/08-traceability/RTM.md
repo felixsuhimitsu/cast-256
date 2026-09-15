@@ -155,5 +155,8 @@ phải hoặc gắn REQ, hoặc xóa.
 | REQ-F-31 | LED1 sáng khi engine bận | như trên |
 | REQ-F-32 | LED2 chớp khi khung bị loại | như trên |
 
-Mạch đã nạp và logic đã có trong `led_status.v`; chỉ thiếu bước quan sát và ghi hình.
+Mạch đã nạp và logic đã có trong `led_status.v`; chỉ thiếu bước quan sát bằng mắt.
 Đây là lý do Traceability coverage dừng ở 92% thay vì 100%.
+
+Video demo và ảnh chụp: người phụ trách đã quyết định **không làm** vì ban tổ chức không
+bắt buộc. Hàng tương ứng trong báo cáo để trống có chủ đích, không phải thiếu sót.
