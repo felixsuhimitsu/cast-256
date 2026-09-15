@@ -38,7 +38,7 @@ RTL_IO     := $(shell find rtl/io -name '*.v' 2>/dev/null)
 RTL_FAB    := $(shell find rtl/fabric -name '*.v' 2>/dev/null)
 RTL_PROTO  := $(shell find rtl/protocol -name '*.v' 2>/dev/null)
 
-.PHONY: help lint sim sim-sbox sim-aes sim-sha sim-uart sim-fabric sim-top \
+.PHONY: help lint sim sim-sbox sim-keysched sim-led sim-aes sim-sha sim-uart sim-fabric sim-top \
         synth synth-aes synth-sha flash test bench clean dirs
 
 #-----------------------------------------------------------------------------
@@ -53,6 +53,8 @@ help:
 	@echo ""
 	@echo "  MÔ PHỎNG (L1/L2 — không thay được test phần cứng, xem REQ-V-03)"
 	@echo "    make sim-sbox      S-Box, doi chieu du 256 gia tri"
+	@echo "    make sim-keysched  Key schedule, doi chieu 60 word FIPS 197 A.3"
+	@echo "    make sim-led       Ba den chi thi trang thai"
 	@echo "    make sim-aes       IP AES-256, vector FIPS 197 + SP 800-38A"
 	@echo "    make sim-sha       IP SHA-256, vector FIPS 180-4"
 	@echo "    make sim-uart      Lớp vật lý UART"
@@ -114,7 +116,13 @@ sim-sha: dirs
 sim-sbox: dirs
 	$(call run_sim,tb_sbox,sim/unit/tb_sbox.v,rtl/ip/aes256/aes256_sbox.v)
 
-sim-aes: sim-sbox
+sim-keysched: dirs
+	$(call run_sim,tb_keysched,sim/unit/tb_keysched.v,rtl/ip/aes256/aes256_keysched.v rtl/ip/aes256/aes256_sbox.v)
+
+sim-led: dirs
+	$(call run_sim,tb_led_status,sim/unit/tb_led_status.v,rtl/io/led_status.v)
+
+sim-aes: sim-sbox sim-keysched
 	$(call run_sim,tb_aes256_ip,sim/unit/tb_aes256_ip.v,$(RTL_AES) sim/lib/csi_checker.v)
 
 sim-uart: dirs
@@ -126,7 +134,7 @@ sim-fabric: dirs
 sim-top: dirs
 	$(call run_sim,tb_top,sim/integ/tb_top.v,$(RTL_ALL) sim/lib/csi_checker.v)
 
-sim: sim-uart sim-sha sim-aes sim-fabric sim-top
+sim: sim-uart sim-led sim-sha sim-aes sim-fabric sim-top
 	@echo "[sim] TẤT CẢ PASS"
 
 #-----------------------------------------------------------------------------

@@ -27,7 +27,7 @@ FPGA giá rẻ.
 | G2 | IP SHA-256 | Vượt 100% vector FIPS 180-4 (bao gồm ca biên độ dài 55/56/64 byte); cùng interface | ✅ 17/17, 1661 LUT4 |
 | G3 | Tích hợp | Khung dữ liệu đi qua UART, được mã hóa + băm, trả về đúng nguyên bản, 0% mất gói trên 100 khung liên tiếp | ✅ 0/100 mất, 19/19 độ dài |
 | G4 | Vừa thiết bị | Tổng hợp và P&R thành công trên GW1NR-LV9QN88PC6/I5 (8640 LUT4), timing PASS ở 27 MHz | ✅ 6664 LUT4 (77%), 46,85 MHz |
-| G5 | Tài liệu sống | RTM phủ 100% requirement → module → test; không có requirement mồ côi | 🚧 36/39 (92%) |
+| G5 | Tài liệu sống | RTM phủ 100% requirement → module → test; không có requirement mồ côi | ✅ 39/39 (100%) |
 
 ## 3. Trong phạm vi (In scope)
 

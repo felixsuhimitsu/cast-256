@@ -104,6 +104,35 @@ module tb_top;
     integer    plen;
     integer    i, j;
 
+    // Chỉ số byte digest bị lật khi corrupt_digest = 1 (dùng cho TC-507)
+    integer dig_bad_idx = 31;
+
+    //------------------------------------------------------------------
+    // TC-507 / REQ-F-23: đo số chu kỳ từ lúc nhận xong khung tới lúc loại khung.
+    // Nếu phép so digest thoát sớm ở byte đầu tiên khác nhau thì thời gian này
+    // PHỤ THUỘC vào vị trí byte sai, và kẻ tấn công dò được từng byte một.
+    //------------------------------------------------------------------
+    integer drop_cyc, drop_cyc_meas;
+    reg     drop_run;
+    always @(posedge clk) begin
+        if (!rst_n) begin
+            drop_cyc      <= 0;
+            drop_run      <= 1'b0;
+            drop_cyc_meas <= -1;
+        end else begin
+            if (dut.frame_ready) begin
+                drop_run <= 1'b1;
+                drop_cyc <= 1;
+            end else if (drop_run) begin
+                drop_cyc <= drop_cyc + 1;
+                if (dut.drop_pulse) begin
+                    drop_run      <= 1'b0;
+                    drop_cyc_meas <= drop_cyc + 1;
+                end
+            end
+        end
+    end
+
     task send_frame;
         input integer corrupt_payload;   // 1 = lật 1 bit trong payload
         input integer corrupt_digest;    // 1 = lật 1 bit trong digest
@@ -129,7 +158,7 @@ module tb_top;
                     sent = sent + 1; end
             for (k = 0; k < 32; k = k + 1)
                 if (truncate_after == 0 || sent < truncate_after) begin
-                    send_byte(corrupt_digest && (k == 31) ? (dig[k] ^ 8'h80) : dig[k]);
+                    send_byte(corrupt_digest && (k == dig_bad_idx) ? (dig[k] ^ 8'h80) : dig[k]);
                     sent = sent + 1; end
         end
     endtask
@@ -285,6 +314,37 @@ module tb_top;
                     "LIVENESS: engine mat ma khong bi ket o trang thai ban")
         `CHECK_TRUE(dut.u_arb.viol_concurrent === 1'b0,
                     "TC-400 muc he thong: khong vi pham loai tru tuong ho")
+
+        //---------------------------------------------------------------
+        // TC-507 / REQ-F-23: so digest phai HANG THOI.
+        // Lat bit o byte digest DAU TIEN va byte CUOI CUNG; so chu ky tu luc
+        // nhan xong khung toi luc loai khung phai GIONG HET nhau.
+        //---------------------------------------------------------------
+        begin : const_time
+            integer t_first, t_last;
+
+            dig_bad_idx = 0;                 // sai ngay byte dau
+            rxn = 0;
+            send_frame(0, 1, 0);
+            wait_quiet(3000);
+            t_first = drop_cyc_meas;
+            `CHECK_EQ(rxn, 32'd0, "TC-507a: sai byte digest dau -> im lang")
+
+            dig_bad_idx = 31;                // sai o byte cuoi
+            rxn = 0;
+            send_frame(0, 1, 0);
+            wait_quiet(3000);
+            t_last = drop_cyc_meas;
+            `CHECK_EQ(rxn, 32'd0, "TC-507b: sai byte digest cuoi -> im lang")
+
+            `CHECK_TRUE(t_first > 0, "TC-507c: do duoc thoi gian loai khung")
+            `CHECK_EQ(t_last, t_first,
+                      "TC-507 / REQ-F-23: so chu ky loai khung KHONG phu thuoc vi tri byte sai")
+            $display("         byte sai dau tien = %0d chu ky, byte sai cuoi = %0d chu ky",
+                     t_first, t_last);
+
+            dig_bad_idx = 31;                // tra lai mac dinh
+        end
 
         //---------------------------------------------------------------
         // TC-508: hai khung lien tiep — bo mo khung phai xu ly duoc ca hai

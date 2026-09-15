@@ -69,6 +69,31 @@ module tb_aes256_ip;
     integer      outlen;
     integer      cyc, enc_cycles;
 
+    // TC-103 (REQ-P-05): đếm chu kỳ mã hóa MỘT khối, đo trực tiếp ở khối
+    // aes256_cipher bên trong IP. Đếm từ lúc enc_start tới lúc enc_done —
+    // đây là phần thuần mã hóa, không gồm thời gian byte đi vào qua CSI.
+    integer      blk_cyc, blk_cyc_max;
+    reg          blk_run;
+    always @(posedge clk) begin
+        if (!rst_n) begin
+            blk_cyc     <= 0;
+            blk_cyc_max <= 0;
+            blk_run     <= 1'b0;
+        end else begin
+            if (dut.u_cipher.enc_start) begin
+                blk_run <= 1'b1;
+                blk_cyc <= 1;
+            end else if (blk_run) begin
+                blk_cyc <= blk_cyc + 1;
+                if (dut.u_cipher.enc_done) begin
+                    blk_run <= 1'b0;
+                    if (blk_cyc + 1 > blk_cyc_max)
+                        blk_cyc_max <= blk_cyc + 1;
+                end
+            end
+        end
+    end
+
     always @(posedge clk) begin
         if (sout_valid && sout_ready) begin
             outbuf[2047 - 8*outlen -: 8] = sout_data;
@@ -263,6 +288,12 @@ module tb_aes256_ip;
         // fail. Khong co cong ra rieng cho khoa vong nen khong kiem truc
         // tiep W[0..59] duoc — ghi ro gioi han nay o RTM thay vi lam ngo.
         //---------------------------------------------------------------
+
+        //---------------------------------------------------------------
+        // TC-103 / REQ-P-05: so chu ky ma hoa mot khoi
+        //---------------------------------------------------------------
+        `CHECK_TRUE(blk_cyc_max > 0, "TC-103a: co do duoc chu ky ma hoa")
+        `CHECK_LE(blk_cyc_max, 32, "TC-103 / REQ-P-05: chu ky moi khoi AES")
 
         //---------------------------------------------------------------
         // TC-108: hop dong CSI trong toan bo mo phong

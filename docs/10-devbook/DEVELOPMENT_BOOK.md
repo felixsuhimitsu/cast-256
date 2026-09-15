@@ -472,7 +472,7 @@ một miền xung nhịp.
 
 Thông lượng 10 778 B/s so với trần lý thuyết của UART 115200 (11 520 B/s) là **93,6%** —
 phần thiếu là 20 byte header và 32 byte digest mỗi khung, không phải do engine chậm. Engine
-AES chạy ở 14,4 MB/s, tức nhanh hơn đường truyền hơn 1000 lần (ADR-0008).
+AES chạy ở 13,5 MB/s, tức nhanh hơn đường truyền hơn 1000 lần (ADR-0008).
 
 Log gốc: `evidence/hw/20260910-0956-TC-602-bench.log`.
 
@@ -541,8 +541,54 @@ Script vẽ lưu ở `scripts/gen_figure.py` để tái lập được.
 | Việc | Trạng thái |
 |---|---|
 | Video demo, ảnh chụp | **Bỏ** — người phụ trách quyết định không quay/chụp vì không bắt buộc. Hàng "VIDEO DEMO / QR" trong báo cáo để trống có chủ đích |
-| Quan sát ba đèn LED (REQ-F-30..32) | Chưa làm; cần mắt người nhìn board |
+| Quan sát ba đèn LED (REQ-F-30..32) | ✅ Người phụ trách xác nhận trên board 2026-09-15 |
 | Điền **Human correction log** (§5) | Theo định nghĩa phải do người làm — xem ghi chú bên dưới |
+
+### WP-11 — Phủ hết test · TT: ✅ Done (2026-09-15)
+
+Người phụ trách xác nhận phần cứng chạy tốt và yêu cầu **phủ hết test**. Rà lại RTM cho
+thấy 5 test case trong kế hoạch **chưa hề tồn tại**, và 4 requirement đang được đánh dấu
+đạt bằng *đọc code* hoặc *suy luận* chứ không bằng test tự động.
+
+| REQ | Trước đây | Đã làm gì | Kết quả |
+|---|---|---|---|
+| REQ-F-05 | Phủ **gián tiếp**: "nếu key schedule sai thì TC-101/104 không PASS" | `tb_keysched.v` — kiểm **module con**, 60/60 word, **hai** khóa khác nhau | 5/5 PASS |
+| REQ-F-23 | Đánh dấu đạt bằng **đọc RTL** | TC-507 — đo chu kỳ loại khung khi byte digest sai ở vị trí đầu vs cuối | 208 = 208 |
+| REQ-P-05 | Con số suy **bằng tay** | TC-103 — bộ đếm tự động | **32**, không phải 30 |
+| REQ-P-06 | Con số suy **bằng tay** | TC-205 — bộ đếm tự động | **66**, không phải 65 |
+| REQ-F-12 | Chỉ 2–3 khối | TC-204 — 1000 byte = 16 khối | PASS |
+| REQ-F-30..32 | "Chờ quan sát bằng mắt" | `tb_led_status.v` 15 phép kiểm **+** xác nhận trên board | PASS |
+
+#### Điều đáng nói nhất: hai con số tôi ghi sai suốt dự án
+
+REQ-F-05 hoá ra **không cần** thay đổi RTL nào. Lý do tôi viện ra trước đây — "thêm cổng
+quan sát sẽ vi phạm §7 hợp đồng CSI" — chỉ đúng với **đỉnh IP**. Module con hoàn toàn kiểm
+riêng được, và testbench tự cấp 4 khối S-Box cho cổng "mượn". Tức là chỗ phủ thiếu đó tồn
+tại vì tôi chấp nhận một lý do nghe hợp lý mà không kiểm lại, chứ không phải vì khó.
+
+Nghiêm trọng hơn: khi thay phép suy luận bằng bộ đếm tự động, **hai con số lệch**:
+
+| | Tôi đã ghi | Đo được |
+|---|---|---|
+| Chu kỳ mã hóa một khối AES | 30 | **32** |
+| Chu kỳ nén một khối SHA | 65 | **66** |
+
+Nguyên nhân: tôi đếm các trạng thái trong FSM bằng mắt và bỏ sót hai chu kỳ bao quanh
+(nhận lệnh, chốt kết quả). Hai con số sai này đã lan vào **7 chỗ**: bình luận đầu hai file
+RTL, hình kiến trúc, bảng kết quả trong báo cáo nộp, ADR-0008, RTM và Development Book.
+
+Ngưỡng REQ-P-05 là 32 nên vẫn đạt — nhưng **vừa khít** chứ không dư như tôi tưởng. Nếu sau
+này ai đó thêm một chu kỳ vào FSM, gate sẽ đỏ, và đó chính là tác dụng mong muốn của việc
+có bộ đếm thật thay vì một con số chép tay.
+
+Đây là ví dụ trực tiếp cho quy tắc D10 trong `DEFINITION_OF_DONE.md`: **số đo thật, không
+phải số suy ra**. Tôi viết ra quy tắc đó ở WP-00 rồi tự vi phạm nó ở WP-03 và WP-04.
+
+#### Một lỗi nữa ở testbench
+
+`tb_led_status.v` bản đầu đổi `drop_pulse` **đúng lúc sườn lên** — đua giữa testbench và
+DUT, thứ tự thực thi không xác định. Kết quả: báo LED2 không sáng trong khi RTL hoàn toàn
+đúng. Sửa bằng cách đưa mọi kích thích sang **sườn xuống**.
 
 ---
 
@@ -641,6 +687,9 @@ Phần này quý hơn phần "đã chạy". Ghi lại để không ai (kể cả
 | 18 | Mảng khóa vòng 15×128 bit, tin rằng yosys sẽ đưa vào BSRAM | 32 RAM16SDP4, **P&R thất bại ở 80% LUT** | Cổng BSRAM Gowin rộng tối đa 32 bit. Tách thành 4 mảng ×32 + `ram_style="block"` |
 | 19 | `len[AW-1:0]` với AW=9 trong khi LEN tối đa là 512 | Khung 512 byte luôn bị loại, 128 byte hoàn hảo | Cắt đúng bit thứ 9. Lỗi biên chỉ lộ ở một giá trị duy nhất — phải quét dải |
 | 20 | Tin rằng "còn 20% tài nguyên" nghĩa là đặt chỗ được | P&R vẫn thất bại | Loại tài nguyên và ràng buộc vị trí quan trọng ngang số lượng |
+| 21 | Đếm chu kỳ FSM **bằng mắt** rồi ghi vào tài liệu | Sai cả hai: AES 30→**32**, SHA 65→**66** | Bỏ sót hai chu kỳ bao quanh. Số sai lan ra 7 chỗ. Phải có **bộ đếm tự động** |
+| 22 | Chấp nhận lý do "thêm cổng quan sát sẽ vi phạm hợp đồng CSI" mà không kiểm lại | REQ-F-05 thiếu test suốt dự án | Hợp đồng chỉ ràng buộc **đỉnh IP**; module con kiểm riêng được, không cần đổi RTL |
+| 23 | Đổi kích thích testbench **đúng lúc sườn lên** | Báo LED2 không sáng trong khi RTL đúng | Đua giữa testbench và DUT. Kích thích phải đổi ở **sườn xuống** |
 | 4 | Chép gán chân UART từ `constraints/tangnano9k.cst` cũ (rx=17, tx=18) | 0/512 byte vọng về | Ngược chân. Đúng là **rx=18, tx=17** — đã đo trên board |
 | 5 | Tin rằng giả thuyết "đảo chân UART" đã bị bác bỏ ở phiên trước | Sai | Kết luận cũ không có số đo đi kèm. Bài học: một giả thuyết chỉ được coi là bác bỏ khi có phép đo, không phải khi có lập luận |
 

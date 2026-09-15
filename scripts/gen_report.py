@@ -174,7 +174,7 @@ p = after(p,
     'testbench, đếm vi phạm ở từng chu kỳ. Kiểm này đã bắt được lỗi thật: bản đầu của IP SHA-256 '
     'báo done ở nhánh lỗi mà chưa từng vào trạng thái busy.', 11)
 p = after(p,
-    'AES-256 dùng kiến trúc lặp với 8 khối S-Box, hai chu kỳ mỗi vòng, tổng 30 chu kỳ mỗi khối '
+    'AES-256 dùng kiến trúc lặp với 8 khối S-Box, hai chu kỳ mỗi vòng, đo được 32 chu kỳ mỗi khối '
     '128 bit. Con số 8 là kết quả của một lần tối ưu có đo: bản 16 S-Box chiếm 2961 LUT4, vượt '
     'ngân sách, và phép đo cho thấy S-Box chiếm 44% diện tích IP nên đó mới là chỗ đáng cắt. '
     'SHA-256 dùng cửa sổ trượt 16 word thay vì lưu đủ 64 word của lịch trình thông điệp, tiết kiệm '
@@ -234,11 +234,11 @@ cell(t, 0, 6, 'BSRAM', 10, True)
 
 cell(t, 1, 0, 'IP AES-256-CTR', 10)
 cell(t, 1, 1, '2 528', 10); cell(t, 1, 2, '1 357', 10); cell(t, 1, 3, '—', 10)
-cell(t, 1, 4, '30', 10); cell(t, 1, 5, '14,4 MB/s', 10); cell(t, 1, 6, '4', 10)
+cell(t, 1, 4, '32', 10); cell(t, 1, 5, '13,5 MB/s', 10); cell(t, 1, 6, '4', 10)
 
 cell(t, 2, 0, 'IP SHA-256', 10)
 cell(t, 2, 1, '1 661', 10); cell(t, 2, 2, '1 146', 10); cell(t, 2, 3, '—', 10)
-cell(t, 2, 4, '65', 10); cell(t, 2, 5, '6,6 MB/s', 10); cell(t, 2, 6, '0', 10)
+cell(t, 2, 4, '66', 10); cell(t, 2, 5, '6,5 MB/s', 10); cell(t, 2, 6, '0', 10)
 
 cell(t, 3, 0, 'protocol/ + fabric/ + io/', 10)
 cell(t, 3, 1, '≈ 2 475', 10); cell(t, 3, 2, '≈ 1 065', 10); cell(t, 3, 3, '—', 10)
@@ -259,7 +259,7 @@ p = after(p,
     'Độ lệch chuẩn 0,03 ms trên 100 khung cho thấy đường xử lý là tất định — không có bộ đệm nào '
     'tràn và không có đường nào phụ thuộc dữ liệu. Thông lượng đạt 93,6% trần lý thuyết của UART '
     '115200 (11 520 B/s); phần thiếu là 20 byte header và 32 byte digest của mỗi khung chứ không '
-    'phải do engine chậm. Bản thân engine AES chạy ở 14,4 MB/s, tức nhanh hơn đường truyền hơn '
+    'phải do engine chậm. Bản thân engine AES chạy ở 13,5 MB/s, tức nhanh hơn đường truyền hơn '
     '1000 lần, nên nút thắt nằm hoàn toàn ở lớp vật lý.', 11)
 p = after(p,
     'Một kết quả đáng ghi lại: lần P&R đầu tiên THẤT BẠI dù báo cáo cùng lúc cho thấy LUT4 mới '

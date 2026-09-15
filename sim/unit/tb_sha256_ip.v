@@ -65,6 +65,32 @@ module tb_sha256_ip;
     // Đếm độ rộng xung done (REQ-F-14)
     always @(posedge clk) if (csi_done) done_width = done_width + 1;
 
+    // TC-205 (REQ-P-06): đếm chu kỳ NÉN một khối 64 byte. Đo từ lúc vào
+    // ST_CINIT (nạp trạng thái H) tới lúc rời ST_ACCUM — đây là phần nén
+    // thuần, không gồm 16 chu kỳ gom word vốn chồng lấn với byte đi vào.
+    localparam ST_CINIT_V = 3'd2, ST_ACCUM_V = 3'd4;
+    integer cmp_cyc, cmp_cyc_max;
+    reg     cmp_run;
+    always @(posedge clk) begin
+        if (!rst_n) begin
+            cmp_cyc     <= 0;
+            cmp_cyc_max <= 0;
+            cmp_run     <= 1'b0;
+        end else begin
+            if (!cmp_run && dut.state == ST_CINIT_V) begin
+                cmp_run <= 1'b1;
+                cmp_cyc <= 1;
+            end else if (cmp_run) begin
+                cmp_cyc <= cmp_cyc + 1;
+                if (dut.state == ST_ACCUM_V) begin
+                    cmp_run <= 1'b0;
+                    if (cmp_cyc + 1 > cmp_cyc_max)
+                        cmp_cyc_max <= cmp_cyc + 1;
+                end
+            end
+        end
+    end
+
     //------------------------------------------------------------------
     // Băm `len` byte, byte thứ i có giá trị fill(i)
     //------------------------------------------------------------------
@@ -232,6 +258,25 @@ module tb_sha256_ip;
         `CHECK_TRUE(csi_err, "TC-209: csi_mode khong hop le -> csi_err")
         `CHECK_TRUE(!csi_result_valid, "INV-5: err thi result_valid phai = 0")
         repeat (3) @(posedge clk);
+
+        //---------------------------------------------------------------
+        // TC-204': thong diep NHIEU KHOI.
+        // Vector FIPS 180-4 B.3 dung 1 000 000 ky tu 'a'; o toc do mo phong
+        // do la ~3 trieu chu ky, qua lau cho mot testbench chay thuong xuyen.
+        // Thay bang 1000 byte = 16 khoi, van chung minh duoc viec noi trang
+        // thai H qua nhieu khoi (REQ-F-12) — dieu ma 120 byte (3 khoi) chua
+        // du suc bao dam.
+        //---------------------------------------------------------------
+        hash_msg(1000, 8'h61);
+        `CHECK_EQ(csi_result,
+                  256'h41edece4_2d63e8d9_bf515a9b_a6932e1c_20cbc9f5_a5d13464_5adb5db1_b9737ea3,
+                  "TC-204: 1000 byte 'a' (16 khoi, noi trang thai H)")
+
+        //---------------------------------------------------------------
+        // TC-205 / REQ-P-06: so chu ky nen mot khoi
+        //---------------------------------------------------------------
+        `CHECK_TRUE(cmp_cyc_max > 0, "TC-205a: co do duoc chu ky nen")
+        `CHECK_LE(cmp_cyc_max, 70, "TC-205 / REQ-P-06: chu ky nen moi khoi SHA")
 
         //---------------------------------------------------------------
         // TC-207: khong vi pham hop dong CSI trong toan bo mo phong

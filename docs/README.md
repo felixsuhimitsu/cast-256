@@ -7,7 +7,8 @@
 
 > **Trạng thái:** hệ thống chạy trên phần cứng thật. 100 khung liên tiếp, 0% mất,
 > độ trễ 32,4 ms, thông lượng 10 778 B/s, F_max 46,85 MHz, 6664/8640 LUT4 (77%).
-> Toàn bộ 6 testbench mô phỏng PASS; 19/19 độ dài payload đúng trên board.
+> Toàn bộ **8 testbench** mô phỏng PASS; 19/19 độ dài payload đúng trên board.
+> RTM phủ **39/39 requirement (100%)**.
 
 ---
 
@@ -44,7 +45,7 @@ Thứ tự các bước, và artifact tương ứng. Mỗi bước chỉ đượ
 | 8 | Definition of Ready / Done | [`06-gates/`](06-gates/) | ✅ |
 | 9 | Vertical slice | `rtl/` + [`10-devbook/DEVELOPMENT_BOOK.md`](10-devbook/DEVELOPMENT_BOOK.md) | ✅ |
 | 10 | Test & gate | [`07-test/TEST_PLAN.md`](07-test/TEST_PLAN.md) | ✅ |
-| 11 | Traceability & telemetry | [`08-traceability/RTM.md`](08-traceability/RTM.md) | ✅ 36/39 |
+| 11 | Traceability & telemetry | [`08-traceability/RTM.md`](08-traceability/RTM.md) | ✅ 39/39 |
 
 Xuyên suốt: [`09-decisions/`](09-decisions/) (8 ADR — mỗi quyết định kiến trúc một file) và
 [`10-devbook/DEVELOPMENT_BOOK.md`](10-devbook/DEVELOPMENT_BOOK.md) (nhật ký: đã thử gì, sai

@@ -37,9 +37,9 @@ kiểm tra hồi quy sau khi vector chính thức đã PASS.
 | TC | Mục tiêu | REQ | Tiêu chí PASS |
 |---|---|---|---|
 | TC-100 | S-Box đối chiếu toàn bộ | REQ-F-04 | 256/256 giá trị khớp |
+| TC-102 | Key schedule, **test trực tiếp module con** | REQ-F-05 | 60/60 word khớp FIPS 197 A.3, với hai khóa khác nhau |
 | TC-101 | Mã hóa khối đơn | REQ-F-01 | Khớp bit FIPS 197 C.3 |
-| TC-102 | Key schedule | REQ-F-05 | 60/60 word khớp |
-| TC-103 | Số chu kỳ mỗi khối | REQ-P-05 | ≤ 20 chu kỳ |
+| TC-103 | Số chu kỳ mỗi khối (đếm tự động) | REQ-P-05 | ≤ 32 chu kỳ — đo được **32** |
 | TC-104 | CTR 4 khối liên tiếp | REQ-F-02 | Khớp SP 800-38A F.5.5 |
 | TC-105 | Counter tràn all-ones → 0 | REQ-F-03 | Khối kế tiếp đúng |
 | TC-106 | Mã rồi giải, vòng tròn | REQ-F-06 | PT == D(E(PT)), 100 khối ngẫu nhiên |
@@ -52,11 +52,11 @@ kiểm tra hồi quy sau khi vector chính thức đã PASS.
 | TC | Mục tiêu | REQ | Tiêu chí PASS |
 |---|---|---|---|
 | TC-200 | Hằng số K | REQ-F-10 | 64/64 khớp |
-| TC-201 | `""` (rỗng) | REQ-F-11 | `e3b0c442…7852b855` |
+| ~~TC-201~~ | `""` (rỗng) | — | **Bỏ**: hợp đồng CSI không biểu diễn được thông điệp độ dài 0. Giới hạn thật, ghi ở SRS §10.4 |
 | TC-202 | `"abc"` | REQ-F-10 | `ba7816bf…f20015ad` |
 | TC-203 | Biên đệm: 55, 56, 63, 64, 119, 120 byte | REQ-F-11 | 6/6 khớp |
-| TC-204 | 1.000.000 × `'a'` | REQ-F-12 | `cdc76e5c…2f92a0` |
-| TC-205 | Số chu kỳ mỗi khối | REQ-P-06 | ≤ 70 chu kỳ |
+| TC-204 | 1000 byte `'a'` = 16 khối | REQ-F-12 | `41edece4…b9737ea3`. Vector 1.000.000 byte của FIPS 180-4 B.3 cần ~3 triệu chu kỳ mô phỏng nên không dùng thường xuyên; 16 khối đã đủ chứng minh nối trạng thái H |
+| TC-205 | Số chu kỳ nén mỗi khối (đếm tự động) | REQ-P-06 | ≤ 70 chu kỳ — đo được **66** |
 | TC-206 | Độ rộng xung `digest_valid` | REQ-F-14 | Đúng 1 chu kỳ |
 | TC-207 | Bất biến CSI INV-1..6 | REQ-I-01 | Không assertion nào bắn |
 | TC-208 | Cửa sổ trượt không rò word cũ | REQ-F-13 | Hai lần băm liên tiếp cho kết quả độc lập |
@@ -71,6 +71,21 @@ kiểm tra hồi quy sau khi vector chính thức đã PASS.
 | TC-300 | Thu/phát một byte | REQ-I-03 | Khớp |
 | TC-301 | Biểu quyết 3 điểm với xung nhiễu 1 chu kỳ | REQ-I-04 | Vẫn đúng |
 | TC-302 | Bit stop sai | REQ-I-04 | Cờ lỗi khung bật, byte bị bỏ |
+
+### L1 — Đèn chỉ thị (`make sim-led`)
+
+| TC | Mục tiêu | REQ | Tiêu chí PASS |
+|---|---|---|---|
+| TC-606 | LED0 sáng đúng lúc đang nhận khung | REQ-F-30 | sáng/tắt theo `rx_active`, không lây sang đèn khác |
+| TC-606 | LED1 sáng đúng lúc engine bận | REQ-F-31 | như trên |
+| TC-606 | LED2 chớp đúng độ dài khi khung bị loại | REQ-F-32 | 27 000 chu kỳ ±4 ở `BLINK_MS = 1` |
+| TC-606 | Xung loại khung mới **làm mới** thời gian chớp | REQ-F-32 | không cộng dồn |
+| TC-606 | Chốt vi phạm loại trừ tương hỗ giữ LED2 **vĩnh viễn** | REQ-F-25 | không tự tắt |
+
+> Quan sát bằng mắt trên board khẳng định "đèn có sáng"; mô phỏng khẳng định "đèn sáng
+> **đúng điều kiện** và tắt **đúng lúc**". Mắt người không phân biệt được 200 ms với
+> 180 ms, và không nhìn thấy được chốt vi phạm nếu nó chưa từng bật. Hai thứ bổ sung cho
+> nhau chứ không thay thế nhau.
 
 ### L2 — Fabric (`make sim-fabric`)
 
@@ -92,7 +107,7 @@ kiểm tra hồi quy sau khi vector chính thức đã PASS.
 | TC-504 | LEN = 0 | REQ-F-21 | Loại khung |
 | TC-505 | LEN = 1024 | REQ-F-21 | Loại khung |
 | TC-506 | Khung cắt giữa chừng | REQ-F-24 | Watchdog về IDLE, khung sau vẫn nhận |
-| TC-507 | So sánh digest hằng thời | REQ-F-23 | Số chu kỳ so sánh giống nhau cho mọi đầu vào |
+| TC-507 | So sánh digest hằng thời | REQ-F-23 | Byte digest sai ở vị trí **đầu** và **cuối** cho cùng số chu kỳ loại khung — đo được 208 = 208 |
 | TC-508 | Hai khung liên tiếp không nghỉ | REQ-F-20 | Cả hai đúng |
 
 ### L3 — Phần cứng (`scripts/hw_test.py`)
@@ -129,13 +144,14 @@ Test chỉ có pha A **bị coi là không hợp lệ** và không được tín
 
 Bảng đầy đủ ở `../08-traceability/RTM.md`. Ở đây chỉ tóm tắt vùng phủ:
 
-| Nhóm REQ | Số REQ | Phủ bởi L1 | L2 | L3 |
-|---|---|---|---|---|
-| REQ-F (chức năng) | 20 | 14 | 9 | 5 |
-| REQ-I (giao diện) | 5 | 5 | 2 | 2 |
-| REQ-P (hiệu năng) | 6 | 2 | 0 | 4 |
-| REQ-R (tài nguyên) | 4 | báo cáo tổng hợp | — | — |
-| REQ-V (kiểm chứng) | 4 | meta — kiểm bằng review |
+| Nhóm REQ | Số REQ | Đã đóng |
+|---|---|---|
+| REQ-F (chức năng) | 20 | 20 |
+| REQ-I (giao diện) | 5 | 5 |
+| REQ-P (hiệu năng) | 6 | 6 |
+| REQ-R (tài nguyên) | 4 | 4 |
+| REQ-V + REQ-N (kiểm chứng, phi chức năng) | 7 | 7 |
+| **Tổng** | **39** | **39 (100%)** |
 
 REQ-P-01..04 **chỉ** phủ được bởi L3. Đây là lý do REQ-V-03 tồn tại.
 
@@ -145,12 +161,15 @@ REQ-P-01..04 **chỉ** phủ được bởi L3. Đây là lý do REQ-V-03 tồn 
 source ~/tools/oss-cad-suite/environment    # nạp toolchain
 
 make lint          # kiểm cú pháp + latch + ràng buộc phụ thuộc tầng
-make sim-aes       # L1 AES
-make sim-sha       # L1 SHA
+make sim-sbox      # L1 S-Box, 256/256 giá trị
+make sim-keysched  # L1 key schedule, 60/60 word
+make sim-led       # L1 ba đèn chỉ thị
 make sim-uart      # L1 UART
+make sim-sha       # L1 SHA
+make sim-aes       # L1 AES
 make sim-fabric    # L2 fabric
 make sim-top       # L2 toàn hệ
-make sim           # tất cả các mức mô phỏng
+make sim           # tất cả 8 testbench
 
 make synth         # tổng hợp + P&R, in bảng tài nguyên
 make flash         # nạp bitstream (chạy tiền cảnh, KHÔNG chạy nền)

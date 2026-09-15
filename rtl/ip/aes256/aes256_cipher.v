@@ -33,9 +33,12 @@
 //
 // Vẫn tránh được bộ chọn 15:1 trên 128 bit (~900 LUT4 nếu làm bằng mux).
 //
-// Thời gian: 1 chu kỳ chờ bộ nhớ + 1 chu kỳ AddRoundKey ban đầu + 14 vòng x 2
-// chu kỳ = 30 chu kỳ mỗi khối. Ở 27 MHz tương đương 14,4 MB/s — vẫn nhanh hơn
-// UART 115200 (11,5 kB/s) hơn 1000 lần, nên không phải nút thắt.
+// Thời gian: ĐO ĐƯỢC 32 CHU KỲ mỗi khối tính từ `enc_start` tới `enc_done`
+// (TC-103, đếm tự động). Phân rã: 1 chu kỳ nhận lệnh + 1 chờ bộ nhớ khóa vòng
+// + 1 AddRoundKey ban đầu + 14 vòng x 2 chu kỳ + 1 chốt kết quả.
+// Trước đây bình luận này ghi 30 — con số suy ra bằng tay, bỏ sót hai chu kỳ
+// bao quanh. Ở 27 MHz, 32 chu kỳ/khối tương đương 13,5 MB/s, vẫn nhanh hơn
+// UART 115200 (11,5 kB/s) hơn 1000 lần nên không phải nút thắt.
 //=============================================================================
 
 `timescale 1ns / 1ps

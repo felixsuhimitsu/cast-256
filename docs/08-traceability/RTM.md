@@ -35,7 +35,7 @@ Bảng này là **gate cuối** của dự án (WP-10). Điều kiện đóng:
 | REQ-F-02 | Chế độ CTR SP 800-38A | WP-04 | MOD-AES-IP | TC-104 | 4/4 khối F.5.5 khớp | ✅ |
 | REQ-F-03 | Counter 128-bit, wrap đúng | WP-04 | MOD-AES-IP | TC-105 | all-ones → 0, cả hai khối khớp | ✅ |
 | REQ-F-04 | S-Box composite field | WP-04 | MOD-AES-SBOX | TC-100 | `sim/unit/tb_sbox.v` 256/256 PASS | ✅ |
-| REQ-F-05 | Key schedule 15 khóa vòng | WP-04 | MOD-AES-KEYSCHED | TC-101, TC-104 (gián tiếp) | 15/15 khóa vòng khớp FIPS 197 A.3 khi dump; **không có test trực tiếp** — xem §5 | 🚧 |
+| REQ-F-05 | Key schedule 15 khóa vòng | WP-04 | MOD-AES-KEYSCHED | **TC-102** | `make sim-keysched` — 60/60 word khớp FIPS 197 A.3, kiểm với **hai** khóa khác nhau | ✅ |
 | REQ-F-06 | Dùng chung cipher cho cả hai chiều | WP-04 | MOD-AES-CIPHER | TC-106 | mã→giải 48 byte về đúng bản rõ | ✅ |
 | REQ-F-07 | Bỏ qua `start` khi busy | WP-04 | MOD-AES-IP | TC-107 | start giữa chừng bị bỏ, kết quả không hỏng | ✅ |
 
@@ -45,7 +45,7 @@ Bảng này là **gate cuối** của dự án (WP-10). Điều kiện đóng:
 |---|---|---|---|---|---|---|
 | REQ-F-10 | SHA-256 64 vòng FIPS 180-4 | WP-03 | MOD-SHA-COMPRESS, MOD-SHA-K | TC-202 | `make sim-sha` — SHA("abc") khớp | ✅ |
 | REQ-F-11 | Tự đệm theo chuẩn | WP-03 | MOD-SHA-PAD | TC-203 | 1/55/56/63/64/119/120 byte đều khớp | ✅ |
-| REQ-F-12 | Thông điệp nhiều khối | WP-03 | MOD-SHA-PAD, MOD-SHA-IP | TC-203 (119, 120 byte = 2–3 khối) | khớp | ✅ |
+| REQ-F-12 | Thông điệp nhiều khối | WP-03 | MOD-SHA-PAD, MOD-SHA-IP | TC-203, **TC-204** | 119/120 byte (2–3 khối) và **1000 byte (16 khối)** đều khớp | ✅ |
 | REQ-F-13 | Cửa sổ trượt 16 word | WP-03 | MOD-SHA-SCHED | TC-208 + đo DFF | 512 DFF (thay vì 2048) | ✅ |
 | REQ-F-14 | Xung `digest_valid` 1 chu kỳ | WP-03 | MOD-SHA-IP | TC-206 | độ rộng đo được = 1 | ✅ |
 
@@ -56,12 +56,12 @@ Bảng này là **gate cuối** của dự án (WP-10). Điều kiện đóng:
 | REQ-F-20 | Đồng bộ bằng quét preamble | WP-06, WP-07 | MOD-PROTO-RX, MOD-PROTO-TX | TC-500, TC-501, TC-508, TC-605 | mô phỏng + **board thật: 19/19 độ dài đúng, rác trước preamble vẫn nhận đúng** | ✅ |
 | REQ-F-21 | LEN trong [1,512] | WP-06, WP-07 | MOD-PROTO-RX, MOD-PROTO-BUF | TC-504, TC-505, TC-601s | LEN=0 và 1024 bị loại (cả mô phỏng lẫn board); LEN=512 đúng sau khi sửa lỗi cắt bit | ✅ |
 | REQ-F-22 | Chỉ phát khi digest khớp | WP-06, WP-09 | MOD-PROTO-DGST, MOD-PROTO-FSM | TC-502, TC-503, TC-603 | mô phỏng + **board thật (TC-603 đủ 2 pha)** | ✅ |
-| REQ-F-23 | So sánh digest hằng thời | WP-06 | MOD-PROTO-DGST | đọc RTL | XOR 256 bit + OR-reduce, 1 chu kỳ, không nhánh phụ thuộc dữ liệu | ✅ |
+| REQ-F-23 | So sánh digest hằng thời | WP-06 | MOD-PROTO-DGST | **TC-507** | đo tự động: byte digest sai ở vị trí đầu và vị trí cuối đều cho **đúng 208 chu kỳ** | ✅ |
 | REQ-F-24 | Watchdog 2²⁴ chu kỳ | WP-06, WP-09 | MOD-PROTO-RX | TC-506, TC-604 | mô phỏng + **board thật: sau 0,62 s watchdog, khung tiếp theo chạy đúng** | ✅ |
 | REQ-F-25 | AES và SHA loại trừ tương hỗ | WP-05 | MOD-FAB-ARB, MOD-FAB-MUX | TC-400, TC-401 | assertion mọi chu kỳ: 0 lần hai IP cùng bận; grant luôn one-hot | ✅ |
-| REQ-F-30 | LED0 đang nhận | WP-07 | MOD-IO-LED | TC-606 | mạch đã nạp; **chờ quan sát bằng mắt + quay video** | 🚧 |
-| REQ-F-31 | LED1 engine bận | WP-07 | MOD-IO-LED | TC-606 | mạch đã nạp; **chờ quan sát bằng mắt + quay video** | 🚧 |
-| REQ-F-32 | LED2 chớp khi loại khung | WP-07 | MOD-IO-LED | TC-606 | mạch đã nạp; **chờ quan sát bằng mắt + quay video** | 🚧 |
+| REQ-F-30 | LED0 đang nhận | WP-07 | MOD-IO-LED | TC-606 | TC-606 mô phỏng (15/15) **+** người phụ trách xác nhận trực quan trên board 2026-09-15 | ✅ |
+| REQ-F-31 | LED1 engine bận | WP-07 | MOD-IO-LED | TC-606 | TC-606 mô phỏng (15/15) **+** người phụ trách xác nhận trực quan trên board 2026-09-15 | ✅ |
+| REQ-F-32 | LED2 chớp khi loại khung | WP-07 | MOD-IO-LED | TC-606 | TC-606 mô phỏng (15/15) **+** người phụ trách xác nhận trực quan trên board 2026-09-15; độ dài chớp đo được 27001 chu kỳ đúng danh định | ✅ |
 
 ### 3.4 Giao diện
 
@@ -81,8 +81,8 @@ Bảng này là **gate cuối** của dự án (WP-10). Điều kiện đóng:
 | REQ-P-02 | 0% mất khung / 100 khung | WP-08 | TC-602 | **0/100 (0,00%)** — `evidence/hw/*-TC-602-bench.log` | ✅ |
 | REQ-P-03 | Độ trễ ≤ 40 ms | WP-08 | TC-602 | **max 32,55 ms**, avg 32,42, σ 0,03 | ✅ |
 | REQ-P-04 | Thông lượng ≥ 8000 B/s | WP-08 | TC-602 | **10 778 B/s** (86,2 kbps) | ✅ |
-| REQ-P-05 | AES ≤ 32 chu kỳ/khối (ADR-0008) | WP-04 | đếm trong mô phỏng | 30 chu kỳ | ✅ |
-| REQ-P-06 | SHA ≤ 70 chu kỳ/khối | WP-03 | TC-205 | 65 chu kỳ nén (1 init + 64 vòng) | ✅ |
+| REQ-P-05 | AES ≤ 32 chu kỳ/khối (ADR-0008) | WP-04 | **TC-103** (đếm tự động) | **32 chu kỳ** đo được | ✅ |
+| REQ-P-06 | SHA ≤ 70 chu kỳ/khối | WP-03 | **TC-205** (đếm tự động) | **66 chu kỳ** nén đo được | ✅ |
 
 ### 3.6 Tài nguyên
 
@@ -114,11 +114,17 @@ phải hoặc gắn REQ, hoặc xóa.
 |---|---|---|
 | (tất cả module trong MODULE_MAP §2 đã có ≥1 REQ ở giai đoạn thiết kế) | — | ✅ khung |
 
-## 4b. Chỗ phủ chưa đầy đủ — ghi rõ thay vì làm ngơ
+## 4b. Chỗ phủ từng chưa đầy đủ — nay đã đóng
 
-| REQ | Thiếu gì | Vì sao chấp nhận tạm |
+Ghi lại vì quá trình đóng chúng có giá trị hơn kết quả.
+
+| REQ | Trước đây | Đã làm gì |
 |---|---|---|
-| REQ-F-05 | Không có test **trực tiếp** đối chiếu W[0..59] với FIPS 197 A.3 | `aes256_keysched` không có cổng ra khóa vòng ở mức IP, nên testbench cấp IP không quan sát được. 15/15 khóa vòng ĐÃ được đối chiếu thủ công bằng testbench gỡ lỗi ở WP-04 và khớp hoàn toàn; ngoài ra nếu key schedule sai thì TC-101/TC-104 không thể PASS. Muốn phủ trực tiếp thì phải thêm cổng quan sát — vi phạm §7 hợp đồng CSI (cấm cổng ngoài danh sách). |
+| REQ-F-05 | Chỉ phủ **gián tiếp**: "nếu key schedule sai thì TC-101/104 không PASS". Lập luận đúng nhưng không phân biệt được "đúng" với "sai theo cách bù trừ với lỗi khác". | Thêm `tb_keysched.v` kiểm **module con** — hợp đồng CSI chỉ ràng buộc đỉnh IP nên không cần thêm cổng quan sát nào. Đối chiếu 60/60 word với **hai** khóa. |
+| REQ-F-23 | Đánh dấu đạt bằng **đọc RTL**. | Thêm TC-507 đo số chu kỳ loại khung khi byte digest sai ở vị trí đầu so với vị trí cuối: **208 = 208**. |
+| REQ-P-05 / P-06 | Con số suy ra **bằng tay**. | Thêm bộ đếm tự động TC-103 / TC-205. Phát hiện số thật là **32** và **66**, không phải 30 và 65 như đã ghi. |
+| REQ-F-12 | Chỉ 2–3 khối. | Thêm TC-204: 1000 byte = 16 khối. |
+| REQ-F-30..32 | "Chờ quan sát bằng mắt". | `tb_led_status.v` (15 phép kiểm) **+** người phụ trách xác nhận trên board. |
 
 ## 5. Ràng buộc đã chấp nhận không thực hiện
 
@@ -134,7 +140,7 @@ phải hoặc gắn REQ, hoặc xóa.
 
 | Chỉ số | Định nghĩa | Mục tiêu | Hiện tại |
 |---|---|---|---|
-| Traceability coverage | % REQ có đủ module + test + bằng chứng | 100% | **36/39 = 92%** (3 mục còn lại là REQ-F-30..32, chờ quay video) |
+| Traceability coverage | % REQ có đủ module + test + bằng chứng | 100% | **39/39 = 100%** |
 | Orphan rate (REQ) | % REQ không có code/test | 0% | 0% |
 | Orphan rate (module) | % module không có REQ | 0% | 0% |
 | Freshness | % tài liệu khớp commit hiện tại | 100% | 100% (quy tắc cùng-commit) |
@@ -146,17 +152,3 @@ phải hoặc gắn REQ, hoặc xóa.
 > `DEVELOPMENT_BOOK.md` §4.2), nhưng tự sửa không phải review. Theo `RISK_DELEGATION.md` §4,
 > các artifact vì vậy chưa được coi là hoàn thành. Danh sách 5 chỗ đáng soi nhất ở
 > `DEVELOPMENT_BOOK.md` §5.
-
-## 7. Ba requirement chưa đóng
-
-| REQ | Thiếu gì | Ai làm được |
-|---|---|---|
-| REQ-F-30 | LED0 sáng khi đang nhận khung | Cần mắt người nhìn board |
-| REQ-F-31 | LED1 sáng khi engine bận | như trên |
-| REQ-F-32 | LED2 chớp khi khung bị loại | như trên |
-
-Mạch đã nạp và logic đã có trong `led_status.v`; chỉ thiếu bước quan sát bằng mắt.
-Đây là lý do Traceability coverage dừng ở 92% thay vì 100%.
-
-Video demo và ảnh chụp: người phụ trách đã quyết định **không làm** vì ban tổ chức không
-bắt buộc. Hàng tương ứng trong báo cáo để trống có chủ đích, không phải thiếu sót.

@@ -47,8 +47,10 @@ dự đoán. Xem DEVELOPMENT_BOOK §4.
 
 1. **Giữ phương án B** (8 S-Box, 2 chu kỳ mỗi vòng). Đã kiểm chứng: 17/17 vector vẫn PASS.
 2. **REQ-R-03: 2400 → 2600 LUT4.** Số đo cuối là 2528, dùng 97% ngân sách mới.
-3. **REQ-P-05: ≤ 20 → ≤ 32 chu kỳ mỗi khối.** Số đo: 30 chu kỳ (1 chờ bộ nhớ + 1
-   AddRoundKey + 14 vòng × 2).
+3. **REQ-P-05: ≤ 20 → ≤ 32 chu kỳ mỗi khối.** Số đo tự động ở TC-103 (bổ sung
+   khi phủ hết test): **32 chu kỳ** từ `enc_start` tới `enc_done`. Khi viết ADR này tôi
+   ghi 30 — suy ra bằng tay, bỏ sót hai chu kỳ bao quanh. Ngưỡng 32 vẫn đạt nhưng **vừa
+   khít** chứ không dư như tưởng.
 4. **Không** áp dụng phương án D. Giữ nó làm dự phòng nếu tầng `protocol/` ở WP-06 làm
    tổng vượt trần.
 
@@ -70,7 +72,7 @@ REQ-R-01 (tổng ≤ 7776 LUT4) và nó chưa hề bị đụng tới:
 
 **Được:** một IP AES đúng chuẩn, đo được, còn dư 24% chỗ cho tầng giao thức.
 
-**Mất:** thông lượng AES giảm từ 28,8 MB/s xuống 14,4 MB/s. Không ảnh hưởng gì: UART
+**Mất:** thông lượng AES giảm còn 13,5 MB/s (32 chu kỳ/khối ở 27 MHz). Không ảnh hưởng gì: UART
 115200 chỉ cho 11,5 kB/s, tức là engine vẫn nhanh hơn đường truyền hơn 1000 lần.
 
 **Phải theo dõi:** nếu WP-06 làm tổng vượt 7000 LUT4, áp dụng phương án D (4 S-Box).

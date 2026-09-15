@@ -113,10 +113,10 @@ varrow(80, 31.8, 38.5, "kết quả", side="right", label_y=33.5)
 # ───────────────────────────── tầng ip/ ─────────────────────────────
 band(1.5, 15.5, "tầng ip/\nhai IP,\nMỘT hợp đồng\ngiao diện CSI", C_IP)
 box(XB, 55, 3.0, 13.5,
-    "IP AES-256-CTR\n2 528 LUT4  ·  30 chu kỳ/khối\nFIPS 197 + NIST SP 800-38A",
+    "IP AES-256-CTR\n2 528 LUT4  ·  32 chu kỳ/khối\nFIPS 197 + NIST SP 800-38A",
     C_IP, fs=7.9, bold=True, lw=1.8)
 box(60, XR - 1, 3.0, 13.5,
-    "IP SHA-256\n1 661 LUT4  ·  65 chu kỳ/khối\nFIPS 180-4",
+    "IP SHA-256\n1 661 LUT4  ·  66 chu kỳ/khối\nFIPS 180-4",
     C_IP, fs=7.9, bold=True, lw=1.8)
 
 varrow(38, 19.0, 13.8, "CSI", side="left", label_y=16.6)

@@ -23,8 +23,10 @@
 // `w_t`, `k_t` và tín hiệu `step` đều thuộc CÙNG một vòng — dễ đọc và dễ đúng.
 //
 // Thời gian mỗi khối 64 byte: 16 chu kỳ gom word (chồng lấn với thời gian byte
-// đi vào) + 1 nạp trạng thái + 64 vòng + 1 cộng dồn = 66 chu kỳ ngoài phần gom.
-// Phần nén thuần 65 chu kỳ, dưới ngưỡng 70 của REQ-P-06.
+// đi vào) + phần nén thuần.
+// PHẦN NÉN ĐO ĐƯỢC LÀ 66 CHU KỲ (TC-205, đếm tự động từ ST_CINIT tới hết
+// ST_ACCUM), dưới ngưỡng 70 của REQ-P-06. Trước đây bình luận này ghi 65 —
+// con số suy ra bằng tay, lệch 1 so với số đo.
 //=============================================================================
 
 `timescale 1ns / 1ps
